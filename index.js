@@ -2,6 +2,17 @@ const tmi = require("tmi.js");
 const fs = require("fs").promises;
 const path = require("path");
 
+
+const express = require("express");
+const app = express();
+const port = process.env.PORT || 3000; // Use Render's port or default to 3000
+
+// Health Check Endpoint
+app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+});
+
+
 const fileNames = [];
 const fileContents = {};
 
@@ -238,3 +249,7 @@ client.on("connected", (addr, port) => {
 });
 
 client.connect();
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

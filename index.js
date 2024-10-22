@@ -1,4 +1,4 @@
-const tmi = require("tmi");
+const tmi = require("tmi.js");
 const fs = require("fs").promises;
 const path = require("path");
 

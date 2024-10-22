@@ -20,20 +20,22 @@ async function ensureChannelsDirectoryExists() {
 }
 
 async function createNewFile(channelName) {
-  const filePath = path.join(directoryPath, `${channelName}`);
+  const filePath = path.join(directoryPath, `${channelName}.txt`); // Add .txt extension
 
   try {
     await fs.access(filePath);
+    console.log(`${channelName} file already exists.`);
   } catch (err) {
     const defaultContent = `${channelName}\n\n!`;
     await fs.writeFile(filePath, defaultContent, "utf8");
     fileNames.push(channelName);
     fileContents[channelName] = [channelName];
+    console.log(`Created file for channel: ${channelName}`);
   }
 }
 
 async function deleteChannel(channelName) {
-  const filePath = path.join(directoryPath, `${channelName}`);
+  const filePath = path.join(directoryPath, `${channelName}.txt`);
 
   try {
     await fs.access(filePath);
@@ -49,8 +51,8 @@ async function deleteChannel(channelName) {
   }
 }
 
-async function updateFile(channelName, newUsername, newPB, newModifyer) {
-  const filePath = path.join(directoryPath, `${channelName}`);
+async function updateFile(channelName, newUsername, newPB, newModifier) {
+  const filePath = path.join(directoryPath, `${channelName}.txt`);
 
   try {
     const content = await fs.readFile(filePath, "utf8");
@@ -62,8 +64,8 @@ async function updateFile(channelName, newUsername, newPB, newModifyer) {
     if (newPB) {
       lines[1] = newPB;
     }
-    if (newModifyer) {
-      lines[2] = newModifyer;
+    if (newModifier) {
+      lines[2] = newModifier;
     }
 
     fileContents[channelName] = lines;
@@ -72,11 +74,6 @@ async function updateFile(channelName, newUsername, newPB, newModifyer) {
     console.error(`Error updating file for channel "${channelName}":`, err);
   }
 }
-
-
-// Call the function to ensure the channels directory exists
-ensureChannelsDirectoryExists();
-createNewFile("arsoniv")
 
 async function loadFilesAndContents() {
   try {
@@ -89,7 +86,7 @@ async function loadFilesAndContents() {
       if (stat.isFile()) {
         const content = await fs.readFile(filePath, "utf8");
         const lines = content.split("\n");
-        const normalizedChannel = file;
+        const normalizedChannel = file.replace('.txt', ''); // Remove .txt extension
         fileNames.push(normalizedChannel);
         fileContents[normalizedChannel] = lines;
       }
@@ -99,7 +96,13 @@ async function loadFilesAndContents() {
   }
 }
 
-loadFilesAndContents();
+async function initialize() {
+  await ensureChannelsDirectoryExists(); // Ensure directory exists
+  await createNewFile("arsoniv"); // Create new file after directory check
+  await loadFilesAndContents(); // Load existing files
+}
+
+initialize(); // Start initialization process
 
 const opts = {
   identity: {
@@ -117,6 +120,7 @@ client.on("message", (channel, userstate, message, self) => {
   const modText = fileContents[normalizedChannel][2];
   if (self) return;
 
+  // Bot commands
   if (
     (message.toLowerCase().includes("hello") ||
       message.toLowerCase().includes("hi")) &&
@@ -141,6 +145,7 @@ client.on("message", (channel, userstate, message, self) => {
     createNewFile(username);
     client.say(channel, `Added: ${username} to channels list!`);
   }
+  
   if (message.toLowerCase() === "-actinium") {
     deleteChannel(username);
     client.say(
@@ -149,6 +154,7 @@ client.on("message", (channel, userstate, message, self) => {
     );
   }
 
+  // Username change command
   if (message.toLowerCase().startsWith("^chuser")) {
     const args = message.split(" ");
     if (username === normalizedChannel && args.length === 2) {
@@ -163,6 +169,7 @@ client.on("message", (channel, userstate, message, self) => {
     }
   }
 
+  // Mod text change command
   if (message.toLowerCase().startsWith("^chmod")) {
     const args = message.split(" ");
     if (username === normalizedChannel && args.length === 2) {
@@ -177,6 +184,7 @@ client.on("message", (channel, userstate, message, self) => {
     }
   }
 
+  // Personal best update command
   if (message.toLowerCase().startsWith("^chpb")) {
     const args = message.split(" ");
     if (username === normalizedChannel && args.length === 2) {
@@ -191,6 +199,7 @@ client.on("message", (channel, userstate, message, self) => {
     }
   }
 
+  // Elo rank command
   if (
     message.toLowerCase().startsWith(modText + "elo") ||
     message.toLowerCase().startsWith(modText + "rank")

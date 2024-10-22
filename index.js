@@ -7,6 +7,18 @@ const fileContents = {};
 
 const directoryPath = path.join(__dirname, "channels");
 
+async function ensureChannelsDirectoryExists() {
+  try {
+    // Check if the directory exists
+    await fs.access(directoryPath);
+    console.log("Channels directory already exists.");
+  } catch (err) {
+    // If the directory does not exist, create it
+    await fs.mkdir(directoryPath);
+    console.log("Channels directory created.");
+  }
+}
+
 async function createNewFile(channelName) {
   const filePath = path.join(directoryPath, `${channelName}`);
 
@@ -60,6 +72,11 @@ async function updateFile(channelName, newUsername, newPB, newModifyer) {
     console.error(`Error updating file for channel "${channelName}":`, err);
   }
 }
+
+
+// Call the function to ensure the channels directory exists
+ensureChannelsDirectoryExists();
+createNewFile("arsoniv")
 
 async function loadFilesAndContents() {
   try {

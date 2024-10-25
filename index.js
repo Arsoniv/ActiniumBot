@@ -1,3 +1,7 @@
+
+const fileNames = [];
+const fileContents = [];
+
 const tmi = require("tmi.js");
 const fs = require("fs").promises;
 const path = require("path");
@@ -5,7 +9,62 @@ const fetch = require("cross-fetch");
 const { architect, Network } = require("neataptic");
 const axios = require("axios");
 
+const { Pool } = require('pg');
+
+// Configure PostgreSQL connection
+const pool = new Pool({
+  connectionString: "postgresql://actiniumdb_user:RZndr0PlYLSuf8PRzXRu75e28aOEv1aQ@dpg-csdh5dtsvqrc738v9lu0-a.oregon-postgres.render.com/actiniumdb",
+  ssl: {
+    rejectUnauthorized: false,
+  }
+});
+
+// Helper function to query the database
+async function queryDB(query, params) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(query, params);
+    return res;
+  } finally {
+    client.release();
+  }
+}
+
+async function saveChannelData(channelName, data) {
+  const query = `
+    INSERT INTO channels (name, data)
+    VALUES ($1, $2)
+    ON CONFLICT (name)
+    DO UPDATE SET data = $2
+  `;
+  await queryDB(query, [channelName, data]);
+  loadChannelData();
+}
+
+async function deleteChannel(channelName) {
+  const query = `
+  delete from channels where name = $1
+  `;
+  await queryDB(query, [channelName]);
+}
+
+async function loadChannelData() {
+  const query = 'SELECT * FROM channels';
+  const result = await queryDB(query);
+  const dataArray = result.rows;
+  console.log(dataArray);
+  dataArray.forEach(channel => {
+    const channelName1 = channel.name;
+    const channelData1 = channel.data;
+
+    fileNames.push(channelName1);
+    fileContents.push({[channelName1]:channelData1});
+  });
+  console.log(fileContents);
+}
+
 const express = require("express");
+const { channel } = require("diagnostics_channel");
 const app = express();
 const port = process.env.PORT || 3000; // Use Render's port or default to 3000
 
@@ -15,104 +74,11 @@ app.get("/health", (req, res) => {
   res.status(200).end();
 });
 
-const fileNames = [];
-const fileContents = {};
-
 const directoryPath = path.join(__dirname, "channels");
 
-async function ensureChannelsDirectoryExists() {
-  try {
-    // Check if the directory exists
-    await fs.access(directoryPath);
-    console.log("Channels directory already exists.");
-  } catch (err) {
-    // If the directory does not exist, create it
-    await fs.mkdir(directoryPath);
-    console.log("Channels directory created.");
-  }
-}
-
-async function createNewFile(channelName) {
-  const filePath = path.join(directoryPath, `${channelName}.txt`); // Add .txt extension
-
-  try {
-    await fs.access(filePath);
-    console.log(`${channelName} file already exists.`);
-  } catch (err) {
-    const defaultContent = `${channelName}\n\n!`;
-    await fs.writeFile(filePath, defaultContent, "utf8");
-    fileNames.push(channelName);
-    fileContents[channelName] = [channelName];
-    console.log(`Created file for channel: ${channelName}`);
-  }
-}
-
-async function deleteChannel(channelName) {
-  const filePath = path.join(directoryPath, `${channelName}.txt`);
-
-  try {
-    await fs.access(filePath);
-    await fs.unlink(filePath);
-    delete fileContents[channelName];
-    const index = fileNames.indexOf(channelName);
-    if (index !== -1) {
-      fileNames.splice(index, 1);
-    }
-    console.log(`${channelName} removed from channel list successfully :(.`);
-  } catch (err) {
-    console.error(`Error deleting channel "${channelName}":`, err);
-  }
-}
-
-async function updateFile(channelName, newUsername, newPB, newModifier) {
-  const filePath = path.join(directoryPath, `${channelName}.txt`);
-
-  try {
-    const content = await fs.readFile(filePath, "utf8");
-    const lines = content.split("\n");
-
-    if (newUsername) {
-      lines[0] = newUsername;
-    }
-    if (newPB) {
-      lines[1] = newPB;
-    }
-    if (newModifier) {
-      lines[2] = newModifier;
-    }
-
-    fileContents[channelName] = lines;
-    await fs.writeFile(filePath, lines.join("\n"), "utf8");
-  } catch (err) {
-    console.error(`Error updating file for channel "${channelName}":`, err);
-  }
-}
-
-async function loadFilesAndContents() {
-  try {
-    const files = await fs.readdir(directoryPath);
-
-    for (const file of files) {
-      const filePath = path.join(directoryPath, file);
-      const stat = await fs.stat(filePath);
-
-      if (stat.isFile()) {
-        const content = await fs.readFile(filePath, "utf8");
-        const lines = content.split("\n");
-        const normalizedChannel = file.replace(".txt", ""); // Remove .txt extension
-        fileNames.push(normalizedChannel);
-        fileContents[normalizedChannel] = lines;
-      }
-    }
-  } catch (err) {
-    console.error("Error reading files:", err);
-  }
-}
-
 async function initialize() {
-  await ensureChannelsDirectoryExists(); // Ensure directory exists
-  await createNewFile("arsoniv"); // Create new file after directory check
-  await loadFilesAndContents(); // Load existing files
+  loadChannelData();
+  //saveChannelData("Arsoniv", {pb: "23:33", modText: "$"});
 }
 
 initialize(); // Start initialization process
@@ -128,6 +94,7 @@ const opts = {
 const client = new tmi.Client(opts);
 
 client.on("message", (channel, userstate, message, self) => {
+  console.log("request recieved");
   const username = userstate.username;
   const normalizedChannel = channel.replace("#", "");
   const modText = fileContents[normalizedChannel][2];
@@ -162,7 +129,7 @@ client.on("message", (channel, userstate, message, self) => {
       args.push(username);
     }
     const args = message.split(" ");
-    createNewFile(args[1]);
+    saveChannelData(args[1], {pb: "not set", modText: "&"});
     client.say(channel, `${args[1]} added to channel list :)`);
   }
 

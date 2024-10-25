@@ -158,8 +158,12 @@ client.on("message", (channel, userstate, message, self) => {
   }
 
   if (message.toLowerCase() === "+actinium") {
-    createNewFile(username);
-    client.say(channel, `${username} added to channel list :)`);
+    if (args.length < 2) {
+      args.push(username);
+    }
+    const args = message.split(" ");
+    createNewFile(args[1]);
+    client.say(channel, `${args[1]} added to channel list :)`);
   }
 
   if (message.toLowerCase() === "-actinium") {

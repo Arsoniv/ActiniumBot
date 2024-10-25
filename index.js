@@ -52,7 +52,6 @@ async function loadChannelData() {
   const query = 'SELECT * FROM channels';
   const result = await queryDB(query);
   const dataArray = result.rows;
-  console.log(dataArray);
   dataArray.forEach(channel => {
     const channelName1 = channel.name;
     const channelData1 = channel.data;
@@ -61,6 +60,7 @@ async function loadChannelData() {
     fileContents.push({[channelName1]:channelData1});
   });
   console.log(fileContents);
+  console.log(fileNames);
 }
 
 const express = require("express");

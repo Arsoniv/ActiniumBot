@@ -5,6 +5,16 @@ const fetch = require("cross-fetch");
 const { architect, Network } = require("neataptic");
 const axios = require("axios");
 
+const express = require("express");
+const app = express();
+const port = process.env.PORT || 3000; // Use Render's port or default to 3000
+
+// Health Check Endpoint
+app.get("/health", (req, res) => {
+  console.log("pinged");
+  res.status(200).end();
+});
+
 const fileNames = [];
 const fileContents = {};
 
@@ -575,3 +585,7 @@ client.on("connected", (addr, port) => {
 });
 
 client.connect();
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

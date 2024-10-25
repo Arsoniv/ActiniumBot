@@ -111,17 +111,7 @@ client.on("message", (channel, userstate, message, self) => {
   }
 
   if (message.toLowerCase() === modText + "pb") {
-    if (
-      fileContents[normalizedChannel] &&
-      fileContents[normalizedChannel].length > 1
-    ) {
-      client.say(channel, "RSG: " + fileContents[normalizedChannel][1]);
-    } else {
-      client.say(
-        channel,
-        "No PB data available, pb can be set with ^pb by channel owner"
-      );
-    }
+    client.say(channel, "RSG: " + fileContents.normalizedChannel.data.pb);
   }
 
   if (message.toLowerCase() === "+actinium") {
@@ -147,7 +137,7 @@ client.on("message", (channel, userstate, message, self) => {
     if (username === (normalizedChannel || "arsoniv")) {
       if (args.length === 2) {
         const newUsername = args[1];
-        updateFile(normalizedChannel, newUsername, "", "");
+        saveChannelData(newUsername, {pb: fileContents.normalizedChannel.data.pb, modText: fileContents.normalizedChannel.data.modText});
         client.say(channel, `Username updated to ${newUsername}`);
       } else {
         client.say(channel, "Provide your minecraft username.");
@@ -162,7 +152,7 @@ client.on("message", (channel, userstate, message, self) => {
     const args = message.split(" ");
     if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
       const newModText = args[1];
-      updateFile(normalizedChannel, "", "", newModText);
+      saveChannelData(normalizedChannel, {pb: fileContents.normalizedChannel.data.pb, modText: newModText});
       client.say(channel, `ModText updated to ${newModText}`);
     } else {
       client.say(
@@ -177,7 +167,7 @@ client.on("message", (channel, userstate, message, self) => {
     const args = message.split(" ");
     if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
       const newPb = args[1];
-      updateFile(normalizedChannel, "", newPb, "");
+      saveChannelData(normalizedChannel, {pb: newPb, modText: fileContents.normalizedChannel.data.modText});
       client.say(channel, `PB updated to ${newPb}`);
     } else {
       client.say(
@@ -270,7 +260,7 @@ client.on("message", (channel, userstate, message, self) => {
   ) {
     const args = message.split(" ");
     if (args.length !== 2) {
-      args.push(fileContents[normalizedChannel][0]);
+      args.push(normalizedChannel);
     }
     (async () => {
       try {
@@ -363,7 +353,7 @@ client.on("message", (channel, userstate, message, self) => {
   ) {
     const args = message.split(" ");
     if (args.length !== 2) {
-      args.push(fileContents[normalizedChannel][0]);
+      args.push(normalizedChannel);
     }
 
     (async () => {
@@ -382,7 +372,7 @@ client.on("message", (channel, userstate, message, self) => {
         console.error("Fetch error:", error);
         client.say(
           channel,
-          `Sorry, I couldn't fetch the Elo for ${fileContents[normalizedChannel][0]}.`
+          `Sorry, I couldn't fetch the Elo for ${normalizedChannel}.`
         );
       }
     })();

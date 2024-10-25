@@ -5,12 +5,6 @@ const fetch = require("cross-fetch");
 const { architect, Network } = require("neataptic");
 const axios = require("axios");
 
-// Health Check Endpoint
-app.get("/health", (req, res) => {
-  console.log("pinged");
-  res.status(200).end();
-});
-
 const fileNames = [];
 const fileContents = {};
 

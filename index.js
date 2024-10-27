@@ -1,7 +1,3 @@
-
-const fileNames = [];
-const fileContents = [];
-
 const tmi = require("tmi.js");
 const fs = require("fs").promises;
 const path = require("path");
@@ -9,62 +5,7 @@ const fetch = require("cross-fetch");
 const { architect, Network } = require("neataptic");
 const axios = require("axios");
 
-const { Pool } = require('pg');
-
-// Configure PostgreSQL connection
-const pool = new Pool({
-  connectionString: "postgresql://actiniumdb_user:RZndr0PlYLSuf8PRzXRu75e28aOEv1aQ@dpg-csdh5dtsvqrc738v9lu0-a.oregon-postgres.render.com/actiniumdb",
-  ssl: {
-    rejectUnauthorized: false,
-  }
-});
-
-// Helper function to query the database
-async function queryDB(query, params) {
-  const client = await pool.connect();
-  try {
-    const res = await client.query(query, params);
-    return res;
-  } finally {
-    client.release();
-  }
-}
-
-async function saveChannelData(channelName, data) {
-  const query = `
-    INSERT INTO channels (name, data)
-    VALUES ($1, $2)
-    ON CONFLICT (name)
-    DO UPDATE SET data = $2
-  `;
-  await queryDB(query, [channelName, data]);
-  loadChannelData();
-}
-
-async function deleteChannel(channelName) {
-  const query = `
-  delete from channels where name = $1
-  `;
-  await queryDB(query, [channelName]);
-}
-
-async function loadChannelData() {
-  const query = 'SELECT * FROM channels';
-  const result = await queryDB(query);
-  const dataArray = result.rows;
-  dataArray.forEach(channel => {
-    const channelName1 = channel.name;
-    const channelData1 = channel.data;
-
-    fileNames.push(channelName1);
-    fileContents.push({[channelName1]:channelData1});
-  });
-  console.log(fileContents);
-  console.log(fileNames);
-}
-
 const express = require("express");
-const { channel } = require("diagnostics_channel");
 const app = express();
 const port = process.env.PORT || 3000; // Use Render's port or default to 3000
 
@@ -74,11 +15,104 @@ app.get("/health", (req, res) => {
   res.status(200).end();
 });
 
+const fileNames = [];
+const fileContents = {};
+
 const directoryPath = path.join(__dirname, "channels");
 
+async function ensureChannelsDirectoryExists() {
+  try {
+    // Check if the directory exists
+    await fs.access(directoryPath);
+    console.log("Channels directory already exists.");
+  } catch (err) {
+    // If the directory does not exist, create it
+    await fs.mkdir(directoryPath);
+    console.log("Channels directory created.");
+  }
+}
+
+async function createNewFile(channelName) {
+  const filePath = path.join(directoryPath, `${channelName}.txt`); // Add .txt extension
+
+  try {
+    await fs.access(filePath);
+    console.log(`${channelName} file already exists.`);
+  } catch (err) {
+    const defaultContent = `${channelName}\n\n!`;
+    await fs.writeFile(filePath, defaultContent, "utf8");
+    fileNames.push(channelName);
+    fileContents[channelName] = [channelName];
+    console.log(`Created file for channel: ${channelName}`);
+  }
+}
+
+async function deleteChannel(channelName) {
+  const filePath = path.join(directoryPath, `${channelName}.txt`);
+
+  try {
+    await fs.access(filePath);
+    await fs.unlink(filePath);
+    delete fileContents[channelName];
+    const index = fileNames.indexOf(channelName);
+    if (index !== -1) {
+      fileNames.splice(index, 1);
+    }
+    console.log(`${channelName} removed from channel list successfully :(.`);
+  } catch (err) {
+    console.error(`Error deleting channel "${channelName}":`, err);
+  }
+}
+
+async function updateFile(channelName, newUsername, newPB, newModifier) {
+  const filePath = path.join(directoryPath, `${channelName}.txt`);
+
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    const lines = content.split("\n");
+
+    if (newUsername) {
+      lines[0] = newUsername;
+    }
+    if (newPB) {
+      lines[1] = newPB;
+    }
+    if (newModifier) {
+      lines[2] = newModifier;
+    }
+
+    fileContents[channelName] = lines;
+    await fs.writeFile(filePath, lines.join("\n"), "utf8");
+  } catch (err) {
+    console.error(`Error updating file for channel "${channelName}":`, err);
+  }
+}
+
+async function loadFilesAndContents() {
+  try {
+    const files = await fs.readdir(directoryPath);
+
+    for (const file of files) {
+      const filePath = path.join(directoryPath, file);
+      const stat = await fs.stat(filePath);
+
+      if (stat.isFile()) {
+        const content = await fs.readFile(filePath, "utf8");
+        const lines = content.split("\n");
+        const normalizedChannel = file.replace(".txt", ""); // Remove .txt extension
+        fileNames.push(normalizedChannel);
+        fileContents[normalizedChannel] = lines;
+      }
+    }
+  } catch (err) {
+    console.error("Error reading files:", err);
+  }
+}
+
 async function initialize() {
-  loadChannelData();
-  //saveChannelData("Arsoniv", {pb: "23:33", modText: "$"});
+  await ensureChannelsDirectoryExists(); // Ensure directory exists
+  await createNewFile("arsoniv"); // Create new file after directory check
+  await loadFilesAndContents(); // Load existing files
 }
 
 initialize(); // Start initialization process
@@ -94,7 +128,6 @@ const opts = {
 const client = new tmi.Client(opts);
 
 client.on("message", (channel, userstate, message, self) => {
-  console.log("request recieved");
   const username = userstate.username;
   const normalizedChannel = channel.replace("#", "");
   const modText = fileContents[normalizedChannel][2];
@@ -102,28 +135,46 @@ client.on("message", (channel, userstate, message, self) => {
 
   // Bot commands
   if (
-    (message.toLowerCase().includes(" hello ") ||
-      message.toLowerCase().includes(" hi ")) &&
-    (message.toLowerCase().includes(" bot ") ||
-      message.toLowerCase().includes(" actinium "))
+    (message.toLowerCase().includes("hello ") ||
+      message.toLowerCase().includes("hi ")) &&
+    (message.toLowerCase().includes(" bot") ||
+      message.toLowerCase().includes(" actinium"))
   ) {
-    client.say(channel, `Hello, ${userstate["display-name"]}!`);
+    const random = Math.random();
+    if (random < 0.1) {
+      client.say(
+        channel,
+        `${userstate["display-name"]}, do you believe that Jesus is the lord and saviour?`
+      );
+    } else {
+      client.say(channel, `Hi ${userstate["display-name"]}!`);
+    }
   }
 
   if (message.toLowerCase() === modText + "pb") {
-    client.say(channel, "RSG: " + fileContents.normalizedChannel.data.pb);
+    if (
+      fileContents[normalizedChannel] &&
+      fileContents[normalizedChannel].length > 1
+    ) {
+      client.say(channel, "RSG: " + fileContents[normalizedChannel][1]);
+    } else {
+      client.say(
+        channel,
+        "No PB data available, pb can be set with ^pb by channel owner"
+      );
+    }
   }
 
-  if (message.toLowerCase() === "+actinium") {
+  if (message.toLowerCase().includes("+actinium")) {
+    const args = message.split(" ");
     if (args.length < 2) {
       args.push(username);
     }
-    const args = message.split(" ");
-    saveChannelData(args[1], {pb: "not set", modText: "&"});
+    createNewFile(args[1]);
     client.say(channel, `${args[1]} added to channel list :)`);
   }
 
-  if (message.toLowerCase() === "-actinium") {
+  if (message.toLowerCase().includes("+actinium")) {
     deleteChannel(username);
     client.say(
       channel,
@@ -137,7 +188,7 @@ client.on("message", (channel, userstate, message, self) => {
     if (username === (normalizedChannel || "arsoniv")) {
       if (args.length === 2) {
         const newUsername = args[1];
-        saveChannelData(newUsername, {pb: fileContents.normalizedChannel.data.pb, modText: fileContents.normalizedChannel.data.modText});
+        updateFile(normalizedChannel, newUsername, "", "");
         client.say(channel, `Username updated to ${newUsername}`);
       } else {
         client.say(channel, "Provide your minecraft username.");
@@ -152,7 +203,7 @@ client.on("message", (channel, userstate, message, self) => {
     const args = message.split(" ");
     if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
       const newModText = args[1];
-      saveChannelData(normalizedChannel, {pb: fileContents.normalizedChannel.data.pb, modText: newModText});
+      updateFile(normalizedChannel, "", "", newModText);
       client.say(channel, `ModText updated to ${newModText}`);
     } else {
       client.say(
@@ -167,7 +218,7 @@ client.on("message", (channel, userstate, message, self) => {
     const args = message.split(" ");
     if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
       const newPb = args[1];
-      saveChannelData(normalizedChannel, {pb: newPb, modText: fileContents.normalizedChannel.data.modText});
+      updateFile(normalizedChannel, "", newPb, "");
       client.say(channel, `PB updated to ${newPb}`);
     } else {
       client.say(
@@ -254,13 +305,226 @@ client.on("message", (channel, userstate, message, self) => {
     })(); // Call the async function here
   }
 
+  if (message.toLowerCase().startsWith(modText + "paceman")) {
+    const args = message.split(" ");
+    if (args.length !== 2) {
+      args.push(fileContents[normalizedChannel][0]);
+    }
+
+    (async () => {
+      const response2 = await fetch(
+        "https://paceman.gg/stats/api/getSessionStats/?name=" +
+          args[1] +
+          "&hours=99999999&hoursBetween=999999999"
+      );
+      const data = await response2.json(); // Parse the JSON response
+
+      // Check if data contains valid stats
+      const stats = [
+        { name: "nether", displayName: "Nether" },
+        { name: "bastion", displayName: "Bastion" },
+        { name: "fortress", displayName: "Fortress" },
+        { name: "first_structure", displayName: "First Structure" },
+        { name: "second_structure", displayName: "Second Structure" },
+        { name: "first_portal", displayName: "First Portal" },
+        { name: "stronghold", displayName: "Stronghold" },
+        { name: "end", displayName: "End" },
+        { name: "finish", displayName: "Finish" },
+      ];
+
+      let message6 = "";
+
+      // Loop through the stats to display each piece of data
+      stats.forEach((stat) => {
+        const statData = data[stat.name];
+        if (statData && statData.count > 0) {
+          message6 += `${stat.displayName}s: ${statData.count} (${statData.avg} avg)  |  `;
+        }
+      });
+      client.say(channel, message6);
+    })();
+  }
+
+  if (message.toLowerCase().startsWith(modText + "bible")) {
+    (async () => {
+      try {
+        const response = await fetch("https://bible-api.com/?random=verse");
+        const data = await response.json();
+
+        // Check if the API returned a verse
+        client.say(channel, `${data.text}  |  ${data.reference}`);
+      } catch (error) {
+        console.error("Error fetching Bible verse:", error);
+        client.say(
+          channel,
+          "Sorry, there was an error fetching the Bible verse."
+        );
+      }
+    })();
+  }
+  if (message.toLowerCase().startsWith(modText + "joke")) {
+    (async () => {
+      try {
+        const response = await fetch("https://v2.jokeapi.dev/joke/Any");
+        const data = await response.json();
+
+        // Check if the API returned a verse
+        client.say(channel, `${data.setup}  |  ${data.delivery}`);
+      } catch (error) {
+        console.error("Error fetching Bible verse:", error);
+        client.say(
+          channel,
+          "Sorry, there was an error fetching the Bible verse."
+        );
+      }
+    })();
+  }
+
+  if (message.toLowerCase().startsWith(modText + "fact")) {
+    (async () => {
+      try {
+        const response = await fetch(
+          "https://uselessfacts.jsph.pl/random.json?language=en"
+        );
+        const data = await response.json();
+
+        // Check if the API returned a verse
+        client.say(channel, `${data.text}`);
+      } catch (error) {
+        console.error("Error fetching Bible verse:", error);
+        client.say(
+          channel,
+          "Sorry, there was an error fetching the Bible verse."
+        );
+      }
+    })();
+  }
+
+  if (message.toLowerCase().startsWith(modText + "catfact")) {
+    (async () => {
+      try {
+        const response = await fetch("https://catfact.ninja/fact");
+        const data = await response.json();
+        client.say(channel, `${data.fact}`);
+      } catch (error) {
+        console.error("Error fetching Bible verse:", error);
+        client.say(
+          channel,
+          "Sorry, there was an error fetching the Bible verse."
+        );
+      }
+    })();
+  }
+
+  if (message.toLowerCase().startsWith(modText + "pirate")) {
+    (async () => {
+        try {
+            const args = message.split(" ");
+          const textToTranslate = args.slice(1).join(" ") || "Give me a sentence!";
+            const response = await fetch(
+                `https://api.funtranslations.com/translate/pirate.json?text=${encodeURIComponent(textToTranslate)}`
+            );
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Check for any errors in the API response
+            if (data.error) {
+                console.error("API Error:", data.error.message);
+                client.say(channel, "Sorry, I couldn't fetch a pirate translation.");
+                return;
+            }
+
+            client.say(channel, data.contents.translated);
+        } catch (error) {
+            console.error("Error fetching pirate translation:", error);
+            client.say(channel, "Sorry, there was an error fetching the pirate translation.");
+        }
+    })();
+}
+  
+  
+  if (message.toLowerCase().startsWith(modText + "yoda")) {
+    (async () => {
+        try {
+            const args = message.split(" ");
+          const textToTranslate = args.slice(1).join(" ") || "Give me a sentence!";
+            const response = await fetch(
+                `https://api.funtranslations.com/translate/yoda.json?text=${encodeURIComponent(textToTranslate)}`
+            );
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Check for any errors in the API response
+            if (data.error) {
+                console.error("API Error:", data.error.message);
+                client.say(channel, "Sorry, I couldn't fetch a pirate translation.");
+                return;
+            }
+
+            client.say(channel, data.contents.translated);
+        } catch (error) {
+            console.error("Error fetching pirate translation:", error);
+            client.say(channel, "Sorry, there was an error fetching the pirate translation.");
+        }
+    })();
+}
+
+
+  if (message.toLowerCase().startsWith(modText + "session")) {
+    const args = message.split(" ");
+    if (args.length !== 2) {
+      args.push(fileContents[normalizedChannel][0]);
+    }
+
+    (async () => {
+      const response2 = await fetch(
+        "https://paceman.gg/stats/api/getSessionStats/?name=" +
+          args[1] +
+          "&hours=24&hoursBetween=2"
+      );
+      const data = await response2.json(); // Parse the JSON response
+
+      // Check if data contains valid stats
+      const stats = [
+        { name: "nether", displayName: "Nether" },
+        { name: "bastion", displayName: "Bastion" },
+        { name: "fortress", displayName: "Fortress" },
+        { name: "first_structure", displayName: "First Structure" },
+        { name: "second_structure", displayName: "Second Structure" },
+        { name: "first_portal", displayName: "First Portal" },
+        { name: "stronghold", displayName: "Stronghold" },
+        { name: "end", displayName: "End" },
+        { name: "finish", displayName: "Finish" },
+      ];
+
+      let message6 = "";
+
+      // Loop through the stats to display each piece of data
+      stats.forEach((stat) => {
+        const statData = data[stat.name];
+        if (statData && statData.count > 0) {
+          message6 += `${stat.displayName}s: ${statData.count} (${statData.avg} avg)  |  `;
+        }
+      });
+      client.say(channel, message6);
+    })();
+  }
+
   if (
     message.toLowerCase().startsWith(modText + "pred") ||
     message.toLowerCase().startsWith(modText + "predict")
   ) {
     const args = message.split(" ");
     if (args.length !== 2) {
-      args.push(normalizedChannel);
+      args.push(fileContents[normalizedChannel][0]);
     }
     (async () => {
       try {
@@ -353,7 +617,7 @@ client.on("message", (channel, userstate, message, self) => {
   ) {
     const args = message.split(" ");
     if (args.length !== 2) {
-      args.push(normalizedChannel);
+      args.push(fileContents[normalizedChannel][0]);
     }
 
     (async () => {
@@ -372,7 +636,7 @@ client.on("message", (channel, userstate, message, self) => {
         console.error("Fetch error:", error);
         client.say(
           channel,
-          `Sorry, I couldn't fetch the Elo for ${normalizedChannel}.`
+          `Sorry, I couldn't fetch the Elo for ${fileContents[normalizedChannel][0]}.`
         );
       }
     })();

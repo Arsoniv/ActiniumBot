@@ -19,10 +19,10 @@ const { Pool } = require("pg");
 
 // PostgreSQL connection setup
 const pool = new Pool({
-  user: "db_37qq_user",
-  host: "dpg-cset6g8gph6c73eth040-a",
-  database: "db_37qq",
-  password: "nBySENDsMsa6dHPlYO5BXFEXXjp8EtWA",
+  user: "db_yc0n_user",
+  host: "dpg-cseto60gph6c73etls30-a",
+  database: "db_yc0n",
+  password: "GKWtZAOvqO9MnrcnANfjE3VdHU5pESmH",
   port: 5432,
 });
 
@@ -35,7 +35,7 @@ async function ensureChannelsDirectoryExists() {
       CREATE TABLE IF NOT EXISTS channels (
         channel_name TEXT PRIMARY KEY,
         username TEXT,
-        commands JSONB,
+        commands TEXT[][],
         modifier TEXT
       )
     `);
@@ -57,7 +57,7 @@ async function createNewFile(channelName) {
     } else {
       await pool.query(
         "INSERT INTO channels (channel_name, username, commands, modifier) VALUES ($1, $2, $3::jsonb, $4)",
-        [channelName, channelName, '[]', "!"]
+        [channelName, channelName, [["pb", "your pb"]], "!"]
       );      
       fileNames.push(channelName);
       fileContents[channelName] = [channelName];

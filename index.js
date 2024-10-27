@@ -194,16 +194,21 @@ client.on("message", (channel, userstate, message, self) => {
     if (args.length < 2) {
       args.push(username);
     }
-    createNewFile(args[1]);
-    client.say(channel, `${args[1]} added to channel list :)`);
+    if (username === args[1] || username === "arsoniv") {
+      createNewFile(args[1]);
+      client.say(channel, `${args[1]} added to channel list :)`);
+    }
   }
 
-  if (message.toLowerCase().includes("+actinium")) {
-    deleteChannel(username);
-    client.say(
-      channel,
-      `${username} removed from channel list successfully :(.`
-    );
+  if (message.toLowerCase().includes("-actinium")) {
+    const args = message.split(" ");
+    if (args.length < 2) {
+      args.push(username);
+    }
+    if (username === args[1] || username === "arsoniv") {
+      deleteChannel(args[1]);
+      client.say(channel, `${args[1]} removed from channel list :(`);
+    }
   }
 
   // Username change command

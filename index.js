@@ -56,7 +56,7 @@ async function createNewFile(channelName) {
       console.log(`${channelName} already exists in the database.`);
     } else {
       await pool.query(
-        "INSERT INTO channels (channel_name, username, commands, modifier) VALUES ($1, $2, $3::jsonb, $4)",
+        "INSERT INTO channels (channel_name, username, commands, modifier) VALUES ($1, $2, $3, $4)",
         [channelName, channelName, [["pb", "your pb"]], "!"]
       );      
       fileNames.push(channelName);

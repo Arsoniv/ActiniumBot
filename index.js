@@ -19,10 +19,10 @@ const { Pool } = require("pg");
 
 // PostgreSQL connection setup
 const pool = new Pool({
-  user: "db_xz77_user",
-  host: "dpg-csern0rtq21c738g7m90-a",
-  database: "db_xz77",
-  password: "XCHFhBFuf0U637pHXCBwUI5psuzPqjSo",
+  user: "db_37qq_user",
+  host: "dpg-cset6g8gph6c73eth040-a",
+  database: "db_37qq",
+  password: "nBySENDsMsa6dHPlYO5BXFEXXjp8EtWA",
   port: 5432,
 });
 
@@ -35,7 +35,7 @@ async function ensureChannelsDirectoryExists() {
       CREATE TABLE IF NOT EXISTS channels (
         channel_name TEXT PRIMARY KEY,
         username TEXT,
-        personal_best TEXT,
+        commands JSONB,
         modifier TEXT
       )
     `);
@@ -56,9 +56,9 @@ async function createNewFile(channelName) {
       console.log(`${channelName} already exists in the database.`);
     } else {
       await pool.query(
-        "INSERT INTO channels (channel_name, username, personal_best, modifier) VALUES ($1, $2, $3, $4)",
-        [channelName, channelName, null, "!"]
-      );
+        "INSERT INTO channels (channel_name, username, commands, modifier) VALUES ($1, $2, $3::jsonb, $4)",
+        [channelName, channelName, '[]', "!"]
+      );      
       fileNames.push(channelName);
       fileContents[channelName] = [channelName];
       console.log(`Created entry for channel: ${channelName}`);
@@ -84,7 +84,7 @@ async function deleteChannel(channelName) {
   }
 }
 
-async function updateFile(channelName, newUsername, newPB, newModifier) {
+async function updateFile(channelName, newUsername, newCommands, newModifier) {
   try {
     const updates = [];
     const values = [];
@@ -93,9 +93,9 @@ async function updateFile(channelName, newUsername, newPB, newModifier) {
       updates.push("username = $1");
       values.push(newUsername);
     }
-    if (newPB !== undefined) {
-      updates.push("personal_best = $2");
-      values.push(newPB);
+    if (newCommands !== undefined) {
+      updates.push("commands = $2");
+      values.push(newCommands);
     }
     if (newModifier !== undefined) {
       updates.push("modifier = $3");
@@ -110,7 +110,7 @@ async function updateFile(channelName, newUsername, newPB, newModifier) {
       values.push(channelName);
 
       await pool.query(query, values);
-      fileContents[channelName] = [newUsername || channelName, newPB, newModifier];
+      fileContents[channelName] = [newUsername || channelName, newCommands, newModifier];
     }
   } catch (err) {
     console.error(`Error updating entry for channel "${channelName}":`, err);
@@ -122,9 +122,9 @@ async function loadFilesAndContents() {
     const res = await pool.query("SELECT * FROM channels");
 
     res.rows.forEach((row) => {
-      const { channel_name, username, personal_best, modifier } = row;
+      const { channel_name, username, commands, modifier } = row;
       fileNames.push(channel_name);
-      fileContents[channel_name] = [username, personal_best, modifier];
+      fileContents[channel_name] = [username, commands, modifier];
     });
     console.log(res.rows)
   } catch (err) {
@@ -175,20 +175,6 @@ client.on("message", (channel, userstate, message, self) => {
     }
   }
 
-  if (message.toLowerCase() === modText + "pb") {
-    if (
-      fileContents[normalizedChannel] &&
-      fileContents[normalizedChannel].length > 1
-    ) {
-      client.say(channel, "RSG: " + fileContents[normalizedChannel][1]);
-    } else {
-      client.say(
-        channel,
-        "No PB data available, pb can be set with ^pb by channel owner"
-      );
-    }
-  }
-
   if (message.toLowerCase().includes("+actinium")) {
     const args = message.split(" ");
     if (args.length < 2) {
@@ -209,7 +195,14 @@ client.on("message", (channel, userstate, message, self) => {
       deleteChannel(args[1]);
       client.say(channel, `${args[1]} removed from channel list :(`);
     }
+  }  
+  
+  for (const [key, value] of fileContents[normalizedChannel][1]) {
+    if (message.toLowerCase().includes(modText + "" + key)) {
+      client.say(channel, value);
+    }
   }
+
 
   // Username change command
   if (message.toLowerCase().startsWith("^chuser")) {
@@ -227,6 +220,23 @@ client.on("message", (channel, userstate, message, self) => {
     }
   }
 
+
+  if (message.toLowerCase().startsWith("^addcom")) {
+    const args = message.split(" ");
+    if (username === (normalizedChannel || "arsoniv")) {
+      if (args.length === 3) {
+        const trigger = args[1];
+        const result = args[2];
+        updateFile(normalizedChannel, "", fileContents[normalizedChannel][1].push([args[1],args[2]]), "");
+        client.say(channel, `Added new command: ${trigger}`);
+      } else {
+        client.say(channel, "Provide a trigger and result");
+      }
+    } else {
+      client.say(channel, "Only the broadcaster can use this command.");
+    }
+  }
+
   // Mod text change command
   if (message.toLowerCase().startsWith("^chmod")) {
     const args = message.split(" ");
@@ -238,21 +248,6 @@ client.on("message", (channel, userstate, message, self) => {
       client.say(
         channel,
         "Only the broadcaster can use this command or provide your desired ModText."
-      );
-    }
-  }
-
-  // Personal best update command
-  if (message.toLowerCase().startsWith("^chpb")) {
-    const args = message.split(" ");
-    if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
-      const newPb = args[1];
-      updateFile(normalizedChannel, "", newPb, "");
-      client.say(channel, `PB updated to ${newPb}`);
-    } else {
-      client.say(
-        channel,
-        "Only the broadcaster can use this command or provide your RSG PB."
       );
     }
   }
@@ -641,8 +636,7 @@ client.on("message", (channel, userstate, message, self) => {
 
   // Elo rank command
   if (
-    message.toLowerCase().startsWith(modText + "elo") ||
-    message.toLowerCase().startsWith(modText + "rank")
+    message.toLowerCase().startsWith(modText + "elo")
   ) {
     const args = message.split(" ");
     if (args.length !== 2) {

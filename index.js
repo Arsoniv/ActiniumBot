@@ -92,15 +92,23 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     if (newUsername !== undefined) {
       updates.push("username = $1");
       values.push(newUsername);
+    }else {
+      values.push("anything");
     }
     if (newCommands !== undefined) {
       updates.push("commands = $2");
       values.push(newCommands);
+    }else {
+      values.push("anything");
     }
     if (newModifier !== undefined) {
       updates.push("modifier = $3");
       values.push(newModifier);
+    }else {
+      values.push("anything");
     }
+
+    console.log(updates+"      "+values);
 
     if (updates.length > 0) {
       const query = `

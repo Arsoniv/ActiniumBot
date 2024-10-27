@@ -88,8 +88,6 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
   try {
     const updates = [];
     const values = [];
-
-    // Track the index for parameterized queries
     let index = 1;
 
     if (newUsername !== undefined) {
@@ -99,7 +97,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     }
     if (newCommands !== undefined) {
       updates.push(`commands = $${index}`);
-      values.push(newCommands);
+      values.push(`{${newCommands.map(cmd => cmd.join(",")).join(",")}}`); // Convert to PostgreSQL array format
       index++;
     }
     if (newModifier !== undefined) {
@@ -108,11 +106,8 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
       index++;
     }
 
-    // Only update if there's something to update
     if (updates.length > 0) {
-      // Add channel name as the last parameter for the WHERE clause
       values.push(channelName);
-      
       const query = `
         UPDATE channels
         SET ${updates.join(", ")}
@@ -120,7 +115,6 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
       `;
 
       await pool.query(query, values);
-      // Update local fileContents with new values
       fileContents[channelName] = [
         newUsername !== undefined ? newUsername : null,
         newCommands !== undefined ? newCommands : null,
@@ -134,6 +128,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     console.error(`Error updating entry for channel "${channelName}":`, err);
   }
 }
+
 
 async function loadFilesAndContents() {
   try {

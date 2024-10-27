@@ -89,36 +89,46 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     const updates = [];
     const values = [];
 
+    // Track the index for parameterized queries
+    let index = 1;
+
     if (newUsername !== undefined) {
-      updates.push("username = $1");
+      updates.push(`username = $${index}`);
       values.push(newUsername);
-    }else {
-      values.push("anything");
+      index++;
     }
     if (newCommands !== undefined) {
-      updates.push("commands = $2");
+      updates.push(`commands = $${index}`);
       values.push(newCommands);
-    }else {
-      values.push("anything");
+      index++;
     }
     if (newModifier !== undefined) {
-      updates.push("modifier = $3");
+      updates.push(`modifier = $${index}`);
       values.push(newModifier);
-    }else {
-      values.push("anything");
+      index++;
     }
 
-    console.log(updates+"      "+values);
-
+    // Only update if there's something to update
     if (updates.length > 0) {
-      const query = `
-        UPDATE channels SET ${updates.join(", ")}
-        WHERE channel_name = $4
-      `;
+      // Add channel name as the last parameter for the WHERE clause
       values.push(channelName);
+      
+      const query = `
+        UPDATE channels
+        SET ${updates.join(", ")}
+        WHERE channel_name = $${index}
+      `;
 
       await pool.query(query, values);
-      fileContents[channelName] = [newUsername || channelName, newCommands, newModifier];
+      // Update local fileContents with new values
+      fileContents[channelName] = [
+        newUsername !== undefined ? newUsername : null,
+        newCommands !== undefined ? newCommands : null,
+        newModifier !== undefined ? newModifier : null,
+      ];
+      console.log(`Updated entry for channel "${channelName}":`, fileContents[channelName]);
+    } else {
+      console.log(`No updates needed for channel "${channelName}".`);
     }
   } catch (err) {
     console.error(`Error updating entry for channel "${channelName}":`, err);

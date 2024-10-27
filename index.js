@@ -126,6 +126,7 @@ async function loadFilesAndContents() {
       fileNames.push(channel_name);
       fileContents[channel_name] = [username, personal_best, modifier];
     });
+    console.log(res.rows)
   } catch (err) {
     console.error("Error loading data from database:", err);
   }

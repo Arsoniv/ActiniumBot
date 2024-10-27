@@ -15,44 +15,64 @@ app.get("/health", (req, res) => {
   res.status(200).end();
 });
 
+const { Pool } = require("pg");
+
+// PostgreSQL connection setup
+const pool = new Pool({
+  user: "db_xz77_user",
+  host: "dpg-csern0rtq21c738g7m90-a",
+  database: "db_xz77",
+  password: "XCHFhBFuf0U637pHXCBwUI5psuzPqjSo",
+  port: 5432,
+});
+
 const fileNames = [];
 const fileContents = {};
 
-const directoryPath = path.join(__dirname, "channels");
-
 async function ensureChannelsDirectoryExists() {
   try {
-    // Check if the directory exists
-    await fs.access(directoryPath);
-    console.log("Channels directory already exists.");
+    const res = await pool.query(`
+      CREATE TABLE IF NOT EXISTS channels (
+        channel_name TEXT PRIMARY KEY,
+        username TEXT,
+        personal_best TEXT,
+        modifier TEXT
+      )
+    `);
+    console.log("Channels table ensured.");
   } catch (err) {
-    // If the directory does not exist, create it
-    await fs.mkdir(directoryPath);
-    console.log("Channels directory created.");
+    console.error("Error ensuring channels table:", err);
   }
 }
 
 async function createNewFile(channelName) {
-  const filePath = path.join(directoryPath, `${channelName}.txt`); // Add .txt extension
-
   try {
-    await fs.access(filePath);
-    console.log(`${channelName} file already exists.`);
+    const res = await pool.query(
+      "SELECT * FROM channels WHERE channel_name = $1",
+      [channelName]
+    );
+
+    if (res.rows.length > 0) {
+      console.log(`${channelName} already exists in the database.`);
+    } else {
+      await pool.query(
+        "INSERT INTO channels (channel_name, username, personal_best, modifier) VALUES ($1, $2, $3, $4)",
+        [channelName, channelName, null, "!"]
+      );
+      fileNames.push(channelName);
+      fileContents[channelName] = [channelName];
+      console.log(`Created entry for channel: ${channelName}`);
+    }
   } catch (err) {
-    const defaultContent = `${channelName}\n\n!`;
-    await fs.writeFile(filePath, defaultContent, "utf8");
-    fileNames.push(channelName);
-    fileContents[channelName] = [channelName];
-    console.log(`Created file for channel: ${channelName}`);
+    console.error(`Error creating entry for channel "${channelName}":`, err);
   }
 }
 
 async function deleteChannel(channelName) {
-  const filePath = path.join(directoryPath, `${channelName}.txt`);
-
   try {
-    await fs.access(filePath);
-    await fs.unlink(filePath);
+    await pool.query("DELETE FROM channels WHERE channel_name = $1", [
+      channelName,
+    ]);
     delete fileContents[channelName];
     const index = fileNames.indexOf(channelName);
     if (index !== -1) {
@@ -65,57 +85,60 @@ async function deleteChannel(channelName) {
 }
 
 async function updateFile(channelName, newUsername, newPB, newModifier) {
-  const filePath = path.join(directoryPath, `${channelName}.txt`);
-
   try {
-    const content = await fs.readFile(filePath, "utf8");
-    const lines = content.split("\n");
+    const updates = [];
+    const values = [];
 
-    if (newUsername) {
-      lines[0] = newUsername;
+    if (newUsername !== undefined) {
+      updates.push("username = $1");
+      values.push(newUsername);
     }
-    if (newPB) {
-      lines[1] = newPB;
+    if (newPB !== undefined) {
+      updates.push("personal_best = $2");
+      values.push(newPB);
     }
-    if (newModifier) {
-      lines[2] = newModifier;
+    if (newModifier !== undefined) {
+      updates.push("modifier = $3");
+      values.push(newModifier);
     }
 
-    fileContents[channelName] = lines;
-    await fs.writeFile(filePath, lines.join("\n"), "utf8");
+    if (updates.length > 0) {
+      const query = `
+        UPDATE channels SET ${updates.join(", ")}
+        WHERE channel_name = $4
+      `;
+      values.push(channelName);
+
+      await pool.query(query, values);
+      fileContents[channelName] = [newUsername || channelName, newPB, newModifier];
+    }
   } catch (err) {
-    console.error(`Error updating file for channel "${channelName}":`, err);
+    console.error(`Error updating entry for channel "${channelName}":`, err);
   }
 }
 
 async function loadFilesAndContents() {
   try {
-    const files = await fs.readdir(directoryPath);
+    const res = await pool.query("SELECT * FROM channels");
 
-    for (const file of files) {
-      const filePath = path.join(directoryPath, file);
-      const stat = await fs.stat(filePath);
-
-      if (stat.isFile()) {
-        const content = await fs.readFile(filePath, "utf8");
-        const lines = content.split("\n");
-        const normalizedChannel = file.replace(".txt", ""); // Remove .txt extension
-        fileNames.push(normalizedChannel);
-        fileContents[normalizedChannel] = lines;
-      }
-    }
+    res.rows.forEach((row) => {
+      const { channel_name, username, personal_best, modifier } = row;
+      fileNames.push(channel_name);
+      fileContents[channel_name] = [username, personal_best, modifier];
+    });
   } catch (err) {
-    console.error("Error reading files:", err);
+    console.error("Error loading data from database:", err);
   }
 }
 
 async function initialize() {
-  await ensureChannelsDirectoryExists(); // Ensure directory exists
-  await createNewFile("arsoniv"); // Create new file after directory check
-  await loadFilesAndContents(); // Load existing files
+  await ensureChannelsDirectoryExists();
+  await createNewFile("arsoniv");
+  await loadFilesAndContents();
 }
 
-initialize(); // Start initialization process
+initialize();
+
 
 const opts = {
   identity: {

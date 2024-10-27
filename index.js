@@ -95,11 +95,17 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
       values.push(newUsername);
       index++;
     }
-    if (newCommands !== undefined) {
+
+    // Check if newCommands is an array before processing
+    if (Array.isArray(newCommands)) {
+      const formattedCommands = `{${newCommands.map(cmd => cmd.join(",")).join(",")}}`;
       updates.push(`commands = $${index}`);
-      values.push(`{${newCommands.map(cmd => cmd.join(",")).join(",")}}`); // Convert to PostgreSQL array format
+      values.push(formattedCommands);  // Add formatted commands as value
       index++;
+    } else {
+      console.log(`newCommands is not an array. Received type: ${typeof newCommands}`);
     }
+
     if (newModifier !== undefined) {
       updates.push(`modifier = $${index}`);
       values.push(newModifier);
@@ -117,7 +123,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
       await pool.query(query, values);
       fileContents[channelName] = [
         newUsername !== undefined ? newUsername : null,
-        newCommands !== undefined ? newCommands : null,
+        Array.isArray(newCommands) ? newCommands : null,
         newModifier !== undefined ? newModifier : null,
       ];
       console.log(`Updated entry for channel "${channelName}":`, fileContents[channelName]);
@@ -128,6 +134,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     console.error(`Error updating entry for channel "${channelName}":`, err);
   }
 }
+
 
 
 async function loadFilesAndContents() {

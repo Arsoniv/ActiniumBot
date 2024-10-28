@@ -230,7 +230,7 @@ client.on("message", (channel, userstate, message, self) => {
     if (username === (normalizedChannel || "arsoniv")) {
       if (args.length === 2) {
         const newUsername = args[1];
-        updateFile(normalizedChannel, newUsername, [], "");
+        updateFile(normalizedChannel, newUsername, fileContents[normalizedChannel][1], modText);
         client.say(channel, `Username updated to ${newUsername}`);
       } else {
         client.say(channel, "Provide your minecraft username.");
@@ -262,7 +262,7 @@ client.on("message", (channel, userstate, message, self) => {
     const args = message.split(" ");
     if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
       const newModText = args[1];
-      updateFile(normalizedChannel, "", [], newModText);
+      updateFile(normalizedChannel, "", fileContents[normalizedChannel][1], newModText);
       client.say(channel, `ModText updated to ${newModText}`);
     } else {
       client.say(

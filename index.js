@@ -90,10 +90,9 @@ async function deleteChannel(channelName) {
 
 async function updateFile(channelName, newUsername, newCommands, newModifier) {
   try {
-
     await pool.query(
-      "update channels set (username, commands, modifier) values ($1, $2, $3)",
-      [newUsername, newCommands, newModifier]
+      "UPDATE channels SET username = $1, commands = $2, modifier = $3 WHERE channel_name = $4",
+      [newUsername, newCommands, newModifier, channelName]
     );
 
     fileContents[channelName] = [
@@ -106,6 +105,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     console.error(`Error updating entry for channel "${channelName}":`, err);
   }
 }
+
 
 
 

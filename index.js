@@ -194,7 +194,7 @@ client.on("message", (channel, userstate, message, self) => {
       client.say(channel, `${args[1]} removed from channel list :(`);
     }
   }  
-  
+  console.log(fileContents[normalizedChannel][1]);
   for (const [key, value] of fileContents[normalizedChannel][1]) {
     if (message.toLowerCase().includes(modText + "" + key)) {
       client.say(channel, value);

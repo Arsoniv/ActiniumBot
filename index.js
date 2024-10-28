@@ -230,7 +230,7 @@ client.on("message", (channel, userstate, message, self) => {
   }
 
   // Mod text change command
-  if (message.toLowerCase().startsWith("^addcom")) {
+  if (message.toLowerCase().startsWith("^chmod")) {
     const args = message.split(" ");
     if (username === normalizedChannel || username === "arsoniv") {
       const newModText = args[1];

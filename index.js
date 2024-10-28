@@ -230,9 +230,9 @@ client.on("message", (channel, userstate, message, self) => {
   }
 
   // Mod text change command
-  if (username === normalizedChannel || username === "arsoniv") {
+  if (message.toLowerCase().startsWith("^addcom")) {
     const args = message.split(" ");
-    if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
+    if (username === normalizedChannel || username === "arsoniv") {
       const newModText = args[1];
       updateFile(normalizedChannel, "", fileContents[normalizedChannel][1], newModText);
       client.say(channel, `ModText updated to ${newModText}`);

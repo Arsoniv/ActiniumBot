@@ -60,7 +60,11 @@ async function createNewFile(channelName) {
         [channelName, channelName, [["pb", "your pb"]], "!"]
       );      
       fileNames.push(channelName);
-      fileContents[channelName] = [channelName];
+      fileContents[channelName] = [
+        channelName,
+        [["pb", "your pb"]],
+        "!",
+      ];
       console.log(`Created entry for channel: ${channelName}`);
     }
   } catch (err) {

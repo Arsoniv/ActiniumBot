@@ -225,7 +225,9 @@ client.on("message", (channel, userstate, message, self) => {
       if (args.length === 3) {
         const trigger = args[1];
         const result = args[2];
-        updateFile(normalizedChannel, "", fileContents[normalizedChannel][1].push([args[1],args[2]]), "");
+        let newcommands = fileContents[normalizedChannel][1];
+        newcommands.push([args[1],args[2]]);
+        updateFile(normalizedChannel, "", newcommands, "");
         client.say(channel, `Added new command: ${trigger}`);
       } else {
         client.say(channel, "Provide a trigger and result");

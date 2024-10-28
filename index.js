@@ -90,50 +90,18 @@ async function deleteChannel(channelName) {
 
 async function updateFile(channelName, newUsername, newCommands, newModifier) {
   try {
-    const updates = [];
-    const values = [];
-    let index = 1;
 
-    if (newUsername !== undefined) {
-      updates.push(`username = $${index}`);
-      values.push(newUsername);
-      index++;
-    }
+    await pool.query(
+      "update channels set (username, commands, modifier) values ($1, $2, $3)",
+      [newUsername, newCommands, newModifier]
+    );
 
-    // Check if newCommands is an array before processing
-    if (Array.isArray(newCommands)) {
-      const formattedCommands = `{${newCommands.map(cmd => cmd.join(",")).join(",")}}`;
-      updates.push(`commands = $${index}`);
-      values.push(formattedCommands);  // Add formatted commands as value
-      index++;
-    } else {
-      console.log(`newCommands is not an array. Received type: ${typeof newCommands}`);
-    }
+    fileContents[channelName] = [
+      newUsername,
+      newCommands,
+      newModifier,
+    ];
 
-    if (newModifier !== undefined) {
-      updates.push(`modifier = $${index}`);
-      values.push(newModifier);
-      index++;
-    }
-
-    if (updates.length > 0) {
-      values.push(channelName);
-      const query = `
-        UPDATE channels
-        SET ${updates.join(", ")}
-        WHERE channel_name = $${index}
-      `;
-
-      await pool.query(query, values);
-      fileContents[channelName] = [
-        newUsername !== undefined ? newUsername : null,
-        Array.isArray(newCommands) ? newCommands : null,
-        newModifier !== undefined ? newModifier : null,
-      ];
-      console.log(`Updated entry for channel "${channelName}":`, fileContents[channelName]);
-    } else {
-      console.log(`No updates needed for channel "${channelName}".`);
-    }
   } catch (err) {
     console.error(`Error updating entry for channel "${channelName}":`, err);
   }

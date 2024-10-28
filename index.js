@@ -90,9 +90,14 @@ async function deleteChannel(channelName) {
 
 async function updateFile(channelName, newUsername, newCommands, newModifier) {
   try {
+    // Format the commands array correctly for PostgreSQL
+    const formattedCommands = Array.isArray(newCommands) 
+      ? `{${newCommands.map(cmd => `"${cmd[0]}","${cmd[1]}"`).join(",")}}` 
+      : '{}'; // Empty array if newCommands is not an array
+
     await pool.query(
       "UPDATE channels SET username = $1, commands = $2, modifier = $3 WHERE channel_name = $4",
-      [newUsername, newCommands, newModifier, channelName]
+      [newUsername, formattedCommands, newModifier, channelName]
     );
 
     fileContents[channelName] = [
@@ -105,6 +110,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
     console.error(`Error updating entry for channel "${channelName}":`, err);
   }
 }
+
 
 
 

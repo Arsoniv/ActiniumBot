@@ -199,7 +199,7 @@ client.on("message", (channel, userstate, message, self) => {
   // Username change command
   if (message.toLowerCase().startsWith("^chuser")) {
     const args = message.split(" ");
-    if (username === (normalizedChannel || "arsoniv")) {
+    if (username === normalizedChannel || username === "arsoniv") {
       if (args.length === 2) {
         const newUsername = args[1];
         updateFile(normalizedChannel, newUsername, fileContents[normalizedChannel][1], modText);
@@ -215,7 +215,7 @@ client.on("message", (channel, userstate, message, self) => {
 
   if (message.toLowerCase().startsWith("^addcom")) {
     const args = message.split(" ");
-    if (username === (normalizedChannel || "arsoniv")) {
+    if (username === normalizedChannel || username === "arsoniv") {
       if (args.length === 3) {
         const trigger = args[1];
         const result = args[2];
@@ -230,7 +230,7 @@ client.on("message", (channel, userstate, message, self) => {
   }
 
   // Mod text change command
-  if (message.toLowerCase().startsWith("^chmod")) {
+  if (username === normalizedChannel || username === "arsoniv") {
     const args = message.split(" ");
     if (username === (normalizedChannel || "arsoniv") && args.length === 2) {
       const newModText = args[1];

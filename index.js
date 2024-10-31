@@ -340,7 +340,8 @@ client.on("message", (channel, userstate, message, self) => {
           args[1] +
           "&limit=1"
       );
-      const data = await response2.json(); // Parse the JSON response
+      const data2 = await response2.json(); // Parse the JSON response
+      const data = data2[0];
 
       const stats = [
         { name: "nether", displayName: "Nether" },
@@ -354,7 +355,7 @@ client.on("message", (channel, userstate, message, self) => {
         { name: "finish", displayName: "Finish" },
       ];
 
-      const date = new Date(data.time * 1000);
+      const date = new Date(data.time);
 
       let message6 = (args[1]+"'s Most Recent Run:  ");
 

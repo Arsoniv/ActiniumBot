@@ -347,8 +347,6 @@ client.on("message", (channel, userstate, message, self) => {
         { name: "nether", displayName: "Nether" },
         { name: "bastion", displayName: "Bastion" },
         { name: "fortress", displayName: "Fortress" },
-        { name: "first_structure", displayName: "First Structure" },
-        { name: "second_structure", displayName: "Second Structure" },
         { name: "first_portal", displayName: "First Portal" },
         { name: "stronghold", displayName: "Stronghold" },
         { name: "end", displayName: "End" },
@@ -363,7 +361,7 @@ client.on("message", (channel, userstate, message, self) => {
 
       // Loop through the stats to display each piece of data
       stats.forEach((stat) => {
-        if (data[stat.name] !== "null") {
+        if (data[stat.name]) {
           const statData = data[stat.name];
           message6 += `${stat.displayName}: ${statData}  |  `;
         }        
@@ -701,7 +699,7 @@ client.on("message", (channel, userstate, message, self) => {
         const losses = data.data.statistics.season.loses.ranked;
         const matches = data.data.statistics.season.playedMatches.ranked;
         const bestWS = data.data.statistics.total.highestWinStreak.ranked;
-        const winrate = matches/wins;
+        const winrate = wins/matches;
         client.say(channel, `${args[1]}'s Stats: ${eloRate} | #${eloRank} | ${winrate}% (${wins}W - ${losses}L) | Matches: ${matches} | Best WS: ${bestWS}`);
       } catch (error) {
         console.error("Fetch error:", error);

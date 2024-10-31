@@ -721,7 +721,7 @@ client.on("message", (channel, userstate, message, self) => {
         const matches = data.data.statistics.season.playedMatches.ranked;
         const bestWS = data.data.statistics.total.highestWinStreak.ranked;
         const winrate = matches > 0 ? (wins / matches) * 100 : 0;
-        client.say(channel, `${args[1]}'s Stats: ${eloRate} | #${eloRank} | ${winrate}% (${wins}W - ${losses}L) | Matches: ${matches} | Best WS: ${bestWS}`);
+        client.say(channel, `${args[1]}'s elo: ${eloRate} | #${eloRank} | ${winrate}% (${wins}W - ${losses}L) | Matches: ${matches} | Best WS: ${bestWS}`);
       } catch (error) {
         console.error("Fetch error:", error);
         client.say(

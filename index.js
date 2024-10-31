@@ -363,8 +363,10 @@ client.on("message", (channel, userstate, message, self) => {
 
       // Loop through the stats to display each piece of data
       stats.forEach((stat) => {
-        const statData = data[stat.name];
-        message6 += `${stat.displayName}: ${statData}  |  `;
+        if (data[stat.name] !== "null") {
+          const statData = data[stat.name];
+          message6 += `${stat.displayName}: ${statData}  |  `;
+        }        
       });
       client.say(channel, message6);
     })();
@@ -695,7 +697,12 @@ client.on("message", (channel, userstate, message, self) => {
         const data = await response.json();
         const eloRate = data.data.eloRate;
         const eloRank = data.data.eloRank;
-        client.say(channel, `${args[1]}'s Elo: ${eloRate}, #${eloRank}.`);
+        const wins = data.data.statistics.season.wins.ranked;
+        const losses = data.data.statistics.season.loses.ranked;
+        const matches = data.data.statistics.season.playedMatches.ranked;
+        const bestWS = data.data.statistics.total.highestWinStreak.ranked;
+        const winrate = matches/wins;
+        client.say(channel, `${args[1]}'s Stats: ${eloRate} | #${eloRank} | ${winrate}% (${wins}W - ${losses}L) | Matches: ${matches} | Best WS: ${bestWS}`);
       } catch (error) {
         console.error("Fetch error:", error);
         client.say(

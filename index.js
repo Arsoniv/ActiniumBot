@@ -355,7 +355,7 @@ client.on("message", (channel, userstate, message, self) => {
         { name: "finish", displayName: "Finish" },
       ];
 
-      const date = new Date(data.time);
+      const date = new Date(data.time* 1000);
 
       let message6 = (args[1]+"'s Most Recent Run:  ");
 
@@ -364,9 +364,7 @@ client.on("message", (channel, userstate, message, self) => {
       // Loop through the stats to display each piece of data
       stats.forEach((stat) => {
         const statData = data[stat.name];
-        if (statData && statData.count > 0) {
-          message6 += `${stat.displayName}: ${statData}  |  `;
-        }
+        message6 += `${stat.displayName}: ${statData}  |  `;
       });
       client.say(channel, message6);
     })();

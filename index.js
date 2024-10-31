@@ -132,7 +132,6 @@ async function loadFilesAndContents() {
 
 async function initialize() {
   await ensureChannelsDirectoryExists();
-  await createNewFile("arsoniv");
   await loadFilesAndContents();
 }
 
@@ -327,6 +326,49 @@ client.on("message", (channel, userstate, message, self) => {
         }
       }
     })(); // Call the async function here
+  }
+
+  if (message.toLowerCase().startsWith(modText + "lastrun")) {
+    const args = message.split(" ");
+    if (args.length !== 2) {
+      args.push(fileContents[normalizedChannel][0]);
+    }
+
+    (async () => {
+      const response2 = await fetch(
+        "https://paceman.gg/stats/api/getRecentRuns?name=" +
+          args[1] +
+          "&limit=1"
+      );
+      const data = await response2.json(); // Parse the JSON response
+
+      const stats = [
+        { name: "nether", displayName: "Nether" },
+        { name: "bastion", displayName: "Bastion" },
+        { name: "fortress", displayName: "Fortress" },
+        { name: "first_structure", displayName: "First Structure" },
+        { name: "second_structure", displayName: "Second Structure" },
+        { name: "first_portal", displayName: "First Portal" },
+        { name: "stronghold", displayName: "Stronghold" },
+        { name: "end", displayName: "End" },
+        { name: "finish", displayName: "Finish" },
+      ];
+
+      const date = new Date(data.time * 1000);
+
+      let message6 = (args[1]+"'s Most Recent Run:  ");
+
+      message6 += `${date.toString()}  |  `;
+
+      // Loop through the stats to display each piece of data
+      stats.forEach((stat) => {
+        const statData = data[stat.name];
+        if (statData && statData.count > 0) {
+          message6 += `${stat.displayName}: ${statData}  |  `;
+        }
+      });
+      client.say(channel, message6);
+    })();
   }
 
   if (message.toLowerCase().startsWith(modText + "paceman")) {

@@ -726,7 +726,7 @@ client.on("message", (channel, userstate, message, self) => {
         console.error("Fetch error:", error);
         client.say(
           channel,
-          `Sorry, I couldn't fetch the Elo for ${fileContents[normalizedChannel][0]}.`
+          `Sorry, I couldn't fetch the Elo for ${args[1]}.`
         );
       }
     })();

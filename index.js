@@ -328,6 +328,18 @@ client.on("message", (channel, userstate, message, self) => {
     })(); // Call the async function here
   }
 
+  function formatTimeFromMs(milliseconds) {
+    const totalSeconds = Math.floor(milliseconds / 1000); // Convert ms to seconds
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+  
+    // Pad with zero if seconds are less than 10
+    const formattedSeconds = seconds.toString().padStart(2, '0');
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+  
+    return `${formattedMinutes}:${formattedSeconds}`;
+  }
+
   if (message.toLowerCase().startsWith(modText + "lastrun")) {
     const args = message.split(" ");
     if (args.length !== 2) {
@@ -353,17 +365,25 @@ client.on("message", (channel, userstate, message, self) => {
         { name: "finish", displayName: "Finish" },
       ];
 
-      const date = new Date(data.time* 1000);
+      const date = new Date(data.time * 1000);
+
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based (i think )
+      const year = date.getFullYear();
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+
+      const formattedDate = `${day}-${month}-${year} ${hours}:${minutes}`;
 
       let message6 = (args[1]+"'s Most Recent Run:  ");
 
-      message6 += `${date.toString()}  |  `;
+      message6 += `${formattedDate}  |  `;
 
       // Loop through the stats to display each piece of data
       stats.forEach((stat) => {
         if (data[stat.name]) {
           const statData = data[stat.name];
-          message6 += `${stat.displayName}: ${statData}  |  `;
+          message6 += `${stat.displayName}: ${formatTimeFromMs(statData)}  |  `;
         }        
       });
       client.say(channel, message6);
@@ -674,6 +694,7 @@ client.on("message", (channel, userstate, message, self) => {
       }
     })();
   }
+  
 
   // Elo rank command
   if (
@@ -699,7 +720,7 @@ client.on("message", (channel, userstate, message, self) => {
         const losses = data.data.statistics.season.loses.ranked;
         const matches = data.data.statistics.season.playedMatches.ranked;
         const bestWS = data.data.statistics.total.highestWinStreak.ranked;
-        const winrate = wins/matches;
+        const winrate = matches > 0 ? (wins / matches) * 100 : 0;
         client.say(channel, `${args[1]}'s Stats: ${eloRate} | #${eloRank} | ${winrate}% (${wins}W - ${losses}L) | Matches: ${matches} | Best WS: ${bestWS}`);
       } catch (error) {
         console.error("Fetch error:", error);

@@ -192,7 +192,8 @@ client.on("message", (channel, userstate, message, self) => {
       deleteChannel(args[1]);
       client.say(channel, `${args[1]} removed from channel list :(`);
     }
-  }  
+  }
+
   console.log(fileContents[normalizedChannel][1]);
   for (const [key, value] of fileContents[normalizedChannel][1]) {
     if (message.toLowerCase().includes(modText + "" + key)) {
@@ -228,7 +229,7 @@ client.on("message", (channel, userstate, message, self) => {
         let newcommands = fileContents[normalizedChannel][1];
         newcommands.push([trigger, result]);
         
-        updateFile(normalizedChannel, "", newcommands, "");
+        updateFile(normalizedChannel, fileContents[normalizedChannel][0], newcommands, modText);
         client.say(channel, `Added new command: ${trigger}`);
       } else {
         client.say(channel, "Provide a trigger and result.");
@@ -258,7 +259,7 @@ client.on("message", (channel, userstate, message, self) => {
         const newcommands = oldcommands.filter(subArray => subArray[0] !== trigger);
         
         // Update the file with the modified commands array
-        updateFile(normalizedChannel, "", newcommands, "");
+        updateFile(normalizedChannel, fileContents[normalizedChannel][0], newcommands, modText);
   
         client.say(channel, `Removed command: ${trigger}`);
       } else {

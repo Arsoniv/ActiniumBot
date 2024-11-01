@@ -444,6 +444,10 @@ client.on("message", (channel, userstate, message, self) => {
     })();
   }
 
+  if (message.toLowerCase().startsWith(modText + "listusers")) {
+    client.say(channel, "ActiniumBot Users: "+fileNames.join(", "))
+  }
+
   if (message.toLowerCase().startsWith(modText + "catfact")) {
     (async () => {
       try {

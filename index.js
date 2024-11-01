@@ -244,7 +244,7 @@ client.on("message", (channel, userstate, message, self) => {
     commands.forEach(command => {
       message += command[0]+" ";
     });
-    client.say(channel, );
+    client.say(channel, message);
   }
 
   if (message.toLowerCase().startsWith("^delcom")) {

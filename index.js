@@ -141,7 +141,7 @@ initialize();
 const opts = {
   identity: {
     username: "ActiniumBot",
-    password: "oauth:bxxdocv8ztpsmen4xoj9ldxhv3j8v9",
+    password: "oauth:nmy32bnp1r4fbajy3oasjkhvhhlpbh",
   },
   channels: fileNames,
 };

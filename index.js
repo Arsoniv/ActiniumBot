@@ -369,14 +369,21 @@ client.on("message", (channel, userstate, message, self) => {
         return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
     };
 
+    // Function to convert ms to mins:secs
+    const msToMinSec = (ms) => {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = ((ms % 60000) / 1000).toFixed(0);
+        return `${minutes}:${seconds.padStart(2, '0')}`;
+    };
+
     (async () => {
         const username = args[1];
         const split = args.length > 2 ? args[2].toLowerCase() : null;
-        const cutoff = args.length > 3 ? parseCutoff(args[3]) : null;
+        const cutoff = args.length > 3 ? parseCutoff(args[3]) * 1000 : null;  // Convert cutoff to ms
 
         // Fetch recent runs data for the given player
         const response = await fetch(
-            `https://paceman.gg/stats/api/getRecentRuns/?name=${username}&hours=99999999&hoursBetween=999999999`
+            `https://paceman.gg/stats/api/getRecentRuns/?name=${username}&hours=999999&limit=9999`
         );
         const data = await response.json();
 
@@ -401,9 +408,11 @@ client.on("message", (channel, userstate, message, self) => {
                                        .map(run => run[stat.name]);
                 if (splitData.length > 0) {
                     const count = splitData.length;
-                    const avg = (splitData.reduce((a, b) => a + b, 0) / count).toFixed(2);
-                    const median = calculateMedian(splitData).toFixed(2);
-                    message6 += `${stat.displayName}s: Count: ${count}, Avg: ${avg}, Median: ${median} | `;
+                    const avg = splitData.reduce((a, b) => a + b, 0) / count;
+                    const median = calculateMedian(splitData);
+                    const fastest = Math.min(...splitData);
+                    
+                    message6 += `${stat.displayName}s: Count: ${count}, Avg: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${msToMinSec(fastest)} | `;
                 }
             });
         } else {
@@ -415,9 +424,11 @@ client.on("message", (channel, userstate, message, self) => {
 
                 if (splitData.length > 0) {
                     const count = splitData.length;
-                    const avg = (splitData.reduce((a, b) => a + b, 0) / count).toFixed(2);
-                    const median = calculateMedian(splitData).toFixed(2);
-                    message6 += `${stat.displayName} split stats (Lifetime): Count: ${count}, Avg: ${avg}, Median: ${median}`;
+                    const avg = splitData.reduce((a, b) => a + b, 0) / count;
+                    const median = calculateMedian(splitData);
+                    const fastest = Math.min(...splitData);
+                    
+                    message6 += `${stat.displayName} split stats (Lifetime): Count: ${count}, Avg: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${msToMinSec(fastest)}`;
                 } else {
                     message6 = `No times found for ${stat.displayName} split`;
                     if (cutoff) message6 += ` under ${args[3]}`;
@@ -430,6 +441,7 @@ client.on("message", (channel, userstate, message, self) => {
         client.say(channel, message6 || "No data available.");
     })();
 }
+
 
 
 /*

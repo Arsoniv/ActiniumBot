@@ -371,10 +371,11 @@ client.on("message", (channel, userstate, message, self) => {
 
     // Function to convert ms to mins:secs
     const msToMinSec = (ms) => {
-        const minutes = Math.floor(ms / 60000);
-        const seconds = Math.floor(((ms % 60000) / 1000));
-        return `${minutes}:${seconds.padStart(2, '0')}`;
-    };
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+      return `${minutes}:${seconds}`;
+  };
+  
 
     (async () => {
         const username = args[1];

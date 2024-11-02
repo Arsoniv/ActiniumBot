@@ -356,10 +356,17 @@ client.on("message", (channel, userstate, message, self) => {
         args.push(fileContents[normalizedChannel][0]);
     }
 
-    // Function to convert time cutoff from mm:ss or mm format to seconds
+    // Function to parse cutoff time in mm:ss or mm format to seconds
     const parseCutoff = (cutoff) => {
         const parts = cutoff.split(":");
         return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : parseInt(parts[0]) * 60;
+    };
+
+    // Function to calculate median
+    const calculateMedian = (arr) => {
+        const sorted = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
     };
 
     (async () => {
@@ -367,9 +374,9 @@ client.on("message", (channel, userstate, message, self) => {
         const split = args.length > 2 ? args[2].toLowerCase() : null;
         const cutoff = args.length > 3 ? parseCutoff(args[3]) : null;
 
-        // Fetch lifetime stats for the given player
+        // Fetch recent runs data for the given player
         const response = await fetch(
-            "https://paceman.gg/stats/api/getSessionStats/?name=" + username + "&hours=99999999&hoursBetween=999999999"
+            `https://paceman.gg/stats/api/getRecentRuns/?name=${username}&hours=99999999&hoursBetween=999999999`
         );
         const data = await response.json();
 
@@ -390,24 +397,29 @@ client.on("message", (channel, userstate, message, self) => {
         if (!split) {
             // Case 1: Display lifetime stats for all splits if no specific split is given
             stats.forEach((stat) => {
-                const statData = data[stat.name];
-                if (statData && statData.count > 0) {
-                    message6 += `${stat.displayName}s: ${statData.count} (${statData.avg} avg)  |  `;
+                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff))
+                                       .map(run => run[stat.name]);
+                if (splitData.length > 0) {
+                    const count = splitData.length;
+                    const avg = (splitData.reduce((a, b) => a + b, 0) / count).toFixed(2);
+                    const median = calculateMedian(splitData).toFixed(2);
+                    message6 += `${stat.displayName}s: Count: ${count}, Avg: ${avg}, Median: ${median} | `;
                 }
             });
         } else {
-            // Find the specific split data
-            const splitData = data[split];
-            if (splitData) {
-                const times = splitData.count.filter(time => {
-                    return cutoff ? time <= cutoff : true; // Filter by cutoff if provided
-                });
+            // Case 2 or 3: Specific split (with or without cutoff)
+            const stat = stats.find(s => s.name === split);
+            if (stat) {
+                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff))
+                                       .map(run => run[stat.name]);
 
-                if (times.length > 0) {
-                    message6 += `Times for ${split.charAt(0).toUpperCase() + split.slice(1)} split (Lifetime): `;
-                    message6 += times.join(", ");
+                if (splitData.length > 0) {
+                    const count = splitData.length;
+                    const avg = (splitData.reduce((a, b) => a + b, 0) / count).toFixed(2);
+                    const median = calculateMedian(splitData).toFixed(2);
+                    message6 += `${stat.displayName} split stats (Lifetime): Count: ${count}, Avg: ${avg}, Median: ${median}`;
                 } else {
-                    message6 += `No times found for ${split.charAt(0).toUpperCase() + split.slice(1)} split`;
+                    message6 = `No times found for ${stat.displayName} split`;
                     if (cutoff) message6 += ` under ${args[3]}`;
                 }
             } else {
@@ -418,6 +430,7 @@ client.on("message", (channel, userstate, message, self) => {
         client.say(channel, message6 || "No data available.");
     })();
 }
+
 
 /*
   if (message.toLowerCase().startsWith(modText + "paceman")) {

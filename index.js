@@ -378,7 +378,7 @@ client.on("message", (channel, userstate, message, self) => {
     // Function to convert ms to mins:secs
     const msToMinSec = (ms) => {
         const minutes = Math.floor(ms / 60000);
-        const seconds = ((ms % 60000) / 1000).toFixed(0);
+        const seconds = Math.floor(((ms % 60000) / 1000).toFixed(0));
         return `${minutes}:${seconds.padStart(2, '0')}`;
     };
 
@@ -418,7 +418,7 @@ client.on("message", (channel, userstate, message, self) => {
                     const median = calculateMedian(splitData);
                     const fastest = Math.min(...splitData);
                     
-                    message6 += `${stat.displayName}s: Count: ${count}, Avg: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${msToMinSec(fastest)} | `;
+                    message6 += `${stat.displayName}s: Count: ${count}, Mean: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${msToMinSec(fastest)} | `;
                 }
             });
         } else {

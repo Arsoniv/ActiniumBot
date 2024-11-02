@@ -419,8 +419,7 @@ client.on("message", (channel, userstate, message, self) => {
             // Case 2 or 3: Specific split (with or without cutoff)
             const stat = stats.find(s => s.name === split);
             if (stat) {
-                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff))
-                                       .map(run => run[stat.name]);
+                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => run[stat.name]);
 
                 if (splitData.length > 0) {
                     const count = splitData.length;
@@ -428,7 +427,7 @@ client.on("message", (channel, userstate, message, self) => {
                     const median = calculateMedian(splitData);
                     const fastest = Math.min(...splitData);
                     
-                    message6 += `${stat.displayName} split stats (Lifetime): Count: ${count}, Avg: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${msToMinSec(fastest)}`;
+                    message6 += `${stat.displayName} (Total: ${count}, Filter: sub${args.length > 3 ? args[3] : 'none'}): ${splitData.join(", ")}`;
                 } else {
                     message6 = `No times found for ${stat.displayName} split`;
                     if (cutoff) message6 += ` under ${args[3]}`;

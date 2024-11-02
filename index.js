@@ -399,7 +399,7 @@ client.on("message", (channel, userstate, message, self) => {
             // Find the specific split data
             const splitData = data[split];
             if (splitData) {
-                const times = splitData.times.filter(time => {
+                const times = splitData.count.filter(time => {
                     return cutoff ? time <= cutoff : true; // Filter by cutoff if provided
                 });
 

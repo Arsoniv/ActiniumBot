@@ -350,6 +350,78 @@ client.on("message", (channel, userstate, message, self) => {
 
   if (message.toLowerCase().startsWith(modText + "paceman")) {
     const args = message.split(" ");
+    
+    // Default to lifetime stats for fileContents[normalizedChannel][0] if no args or just "paceman" is given
+    if (args.length === 1) {
+        args.push(fileContents[normalizedChannel][0]);
+    }
+
+    // Function to convert time cutoff from mm:ss or mm format to seconds
+    const parseCutoff = (cutoff) => {
+        const parts = cutoff.split(":");
+        return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : parseInt(parts[0]) * 60;
+    };
+
+    (async () => {
+        const username = args[1];
+        const split = args.length > 2 ? args[2].toLowerCase() : null;
+        const cutoff = args.length > 3 ? parseCutoff(args[3]) : null;
+
+        // Fetch lifetime stats for the given player
+        const response = await fetch(
+            "https://paceman.gg/stats/api/getSessionStats/?name=" + username + "&hours=99999999&hoursBetween=999999999"
+        );
+        const data = await response.json();
+
+        const stats = [
+            { name: "nether", displayName: "Nether" },
+            { name: "bastion", displayName: "Bastion" },
+            { name: "fortress", displayName: "Fortress" },
+            { name: "first_structure", displayName: "First Structure" },
+            { name: "second_structure", displayName: "Second Structure" },
+            { name: "first_portal", displayName: "First Portal" },
+            { name: "stronghold", displayName: "Stronghold" },
+            { name: "end", displayName: "End" },
+            { name: "finish", displayName: "Finish" },
+        ];
+
+        let message6 = "";
+
+        if (!split) {
+            // Case 1: Display lifetime stats for all splits if no specific split is given
+            stats.forEach((stat) => {
+                const statData = data[stat.name];
+                if (statData && statData.count > 0) {
+                    message6 += `${stat.displayName}s: ${statData.count} (${statData.avg} avg)  |  `;
+                }
+            });
+        } else {
+            // Find the specific split data
+            const splitData = data[split];
+            if (splitData) {
+                const times = splitData.times.filter(time => {
+                    return cutoff ? time <= cutoff : true; // Filter by cutoff if provided
+                });
+
+                if (times.length > 0) {
+                    message6 += `Times for ${split.charAt(0).toUpperCase() + split.slice(1)} split (Lifetime): `;
+                    message6 += times.join(", ");
+                } else {
+                    message6 += `No times found for ${split.charAt(0).toUpperCase() + split.slice(1)} split`;
+                    if (cutoff) message6 += ` under ${args[3]}`;
+                }
+            } else {
+                message6 = `No data found for split "${split}".`;
+            }
+        }
+
+        client.say(channel, message6 || "No data available.");
+    })();
+}
+
+/*
+  if (message.toLowerCase().startsWith(modText + "paceman")) {
+    const args = message.split(" ");
     if (args.length !== 2) {
       args.push(fileContents[normalizedChannel][0]);
     }
@@ -389,6 +461,7 @@ client.on("message", (channel, userstate, message, self) => {
       client.say(channel, message6);
     })();
   }
+*/
 
   if (message.toLowerCase().startsWith(modText + "bible")) {
     (async () => {

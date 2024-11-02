@@ -420,7 +420,7 @@ client.on("message", (channel, userstate, message, self) => {
             // Case 2 or 3: Specific split (with or without cutoff)
             const stat = stats.find(s => s.name === split);
             if (stat) {
-                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => formatCutoff(run[stat.name]/1000));
+                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => formatTimeFromMs(run[stat.name]/1000));
 
                 if (splitData.length > 0) {
                     const count = splitData.length;
@@ -444,8 +444,8 @@ client.on("message", (channel, userstate, message, self) => {
 
 
 
-/*
-  if (message.toLowerCase().startsWith(modText + "paceman")) {
+
+  if (message.toLowerCase().startsWith(modText + "pace")) {
     const args = message.split(" ");
     if (args.length !== 2) {
       args.push(fileContents[normalizedChannel][0]);
@@ -486,7 +486,6 @@ client.on("message", (channel, userstate, message, self) => {
       client.say(channel, message6);
     })();
   }
-*/
 
   if (message.toLowerCase().startsWith(modText + "bible")) {
     (async () => {

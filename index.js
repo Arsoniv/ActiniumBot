@@ -362,12 +362,6 @@ client.on("message", (channel, userstate, message, self) => {
         return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : parseInt(parts[0]) * 60;
     };
 
-    const formatCutoff = (seconds) => {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
-
     // Function to calculate median
     const calculateMedian = (arr) => {
         const sorted = [...arr].sort((a, b) => a - b);
@@ -418,7 +412,7 @@ client.on("message", (channel, userstate, message, self) => {
                     const median = calculateMedian(splitData);
                     const fastest = Math.min(...splitData);
                     
-                    message6 += `${stat.displayName}s: Count: ${count}, Mean: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${msToMinSec(fastest)} | `;
+                    message6 += `${stat.displayName}s: Count: ${count}, Mean: ${msToMinSec(avg)}, Median: ${msToMinSec(median)}, Fastest: ${formatTimeFromMs(fastest)} | `;
                 }
             });
         } else {

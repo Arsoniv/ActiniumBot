@@ -197,7 +197,7 @@ client.on("message", (channel, userstate, message, self) => {
   console.log(fileContents[normalizedChannel][1]);
   for (const [key, value] of fileContents[normalizedChannel][1]) {
     if (message.toLowerCase().includes(modText + "" + key)) {
-      client.say(channel, value);
+      client.say(channel, value+".");
     }
   }
 

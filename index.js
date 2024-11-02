@@ -365,8 +365,8 @@ client.on("message", (channel, userstate, message, self) => {
     const formatCutoff = (seconds) => {
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = seconds % 60;
-      return remainingSeconds > 0 ? `${minutes}:${remainingSeconds.toString().padStart(2, '0')}` : `${minutes}`;
-  };
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
 
     // Function to calculate median
     const calculateMedian = (arr) => {
@@ -425,7 +425,7 @@ client.on("message", (channel, userstate, message, self) => {
             // Case 2 or 3: Specific split (with or without cutoff)
             const stat = stats.find(s => s.name === split);
             if (stat) {
-                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => formatCutoff(run[stat.name]));
+                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => formatCutoff(run[stat.name]/1000));
 
                 if (splitData.length > 0) {
                     const count = splitData.length;

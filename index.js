@@ -362,6 +362,12 @@ client.on("message", (channel, userstate, message, self) => {
         return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : parseInt(parts[0]) * 60;
     };
 
+    const formatCutoff = (seconds) => {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return remainingSeconds > 0 ? `${minutes}:${remainingSeconds.toString().padStart(2, '0')}` : `${minutes}`;
+  };
+
     // Function to calculate median
     const calculateMedian = (arr) => {
         const sorted = [...arr].sort((a, b) => a - b);
@@ -419,7 +425,7 @@ client.on("message", (channel, userstate, message, self) => {
             // Case 2 or 3: Specific split (with or without cutoff)
             const stat = stats.find(s => s.name === split);
             if (stat) {
-                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => run[stat.name]);
+                const splitData = data.filter(run => run[stat.name] && (!cutoff || run[stat.name] <= cutoff)).map(run => formatCutoff(run[stat.name]));
 
                 if (splitData.length > 0) {
                     const count = splitData.length;
@@ -427,7 +433,7 @@ client.on("message", (channel, userstate, message, self) => {
                     const median = calculateMedian(splitData);
                     const fastest = Math.min(...splitData);
                     
-                    message6 += `${stat.displayName} (Total: ${count}, Filter: sub${args.length > 3 ? args[3] : 'none'}): ${splitData.join(", ")}`;
+                    message6 += `${stat.displayName} (Total: ${count}, Filter: sub${args.length > 3 ? args[3] : 'infinite'}): ${splitData.join(", ")}`;
                 } else {
                     message6 = `No times found for ${stat.displayName} split`;
                     if (cutoff) message6 += ` under ${args[3]}`;

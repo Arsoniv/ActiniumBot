@@ -258,12 +258,17 @@ client.on("message", (channel, userstate, message, self) => {
     }
 
     if (message.toLowerCase().startsWith(modText + "msr")) {
-        const data = fetchMSApiData(userName);
+        const args = message.split(" ");
+        if (args.length !== 2) {
+            args.push(fileContents[normalizedChannel][0]);
+        }
+
+        const data = fetchMSApiData(args[1]);
 
         if (data) {
             client.say(channel, `${data.result.username} [${data.result.elo}]`)
         } else {
-            client.say(channel, `Sorry, I could not fetch the data for ${userName}.`);
+            client.say(channel, `Sorry, I could not fetch the data for ${args[1]}.`);
         }
     }
 

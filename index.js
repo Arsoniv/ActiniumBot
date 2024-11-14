@@ -1,6 +1,7 @@
 const tmi = require("tmi.js");
 const fetch = require("cross-fetch");
 
+const axios = require("axios");
 const express = require("express");
 const app = express();
 const port = process.env.PORT || 3000; // Use Render's port or default to 3000

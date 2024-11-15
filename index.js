@@ -158,7 +158,7 @@ const opts = {
 
 const client = new tmi.Client(opts);
 
-client.on("message", (channel, userstate, message, self) => {
+client.on("message", async (channel, userstate, message, self) => {
     const username = userstate.username;
     const normalizedChannel = channel.replace("#", "");
     const modText = fileContents[normalizedChannel][2];
@@ -264,7 +264,7 @@ client.on("message", (channel, userstate, message, self) => {
             args.push(fileContents[normalizedChannel][0]);
         }
 
-        const data = fetchMSApiData(args[1]);
+        const data = await fetchMSApiData(args[1]);
 
         if (data) {
             client.say(channel, `${data.result.username} [${data.result.elo}]`)

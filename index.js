@@ -100,6 +100,7 @@ async function loadChannelsFromDatabase() {
         res.rows.forEach((row) => {
             const {channel_name, username, commands, modifier} = row;
             fileNames.push(channel_name);
+            console.log('added '+channel_name)
             fileContents[channel_name] = [username, commands, modifier];
         });
         console.log(res.rows)
@@ -115,6 +116,8 @@ async function initialize() {
 
 initialize();
 
+console.log(fileNames);
+console.log(fileContents);
 
 const opts = {
     identity: {

@@ -1,48 +1,16 @@
 const tmi = require("tmi.js");
 const fetch = require("cross-fetch");
 
-const axios = require("axios");
-const express = require("express");
-const app = express();
-const port = process.env.PORT || 3000; // Use Render's port or default to 3000
-
-// Health Check Endpoint
-app.get("/health", (req, res) => {
-    console.log("pinged");
-    res.status(200).end();
-});
-
 const {Pool} = require("pg");
 
-// PostgreSQL connection setup
 const pool = new Pool({
-    user: "db_yc0n_user",
-    host: "dpg-cseto60gph6c73etls30-a",
-    database: "db_yc0n",
-    password: "GKWtZAOvqO9MnrcnANfjE3VdHU5pESmH",
-    port: 5432,
-});
-
-async function fetchMSApiData(userName) {
-    try {
-        const response = await axios.post('https://ms-ranked.vercel.app/api/getUserInfo', {
-            userName  // Sending userName in the request body
-        }, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching API data:', error);
-        return null;
-    }
-}
+    connectionString: process.env.DATABASE_URL,
+})
 
 const fileNames = [];
 const fileContents = {};
 
-async function ensureChannelsDirectoryExists() {
+async function ensureChannelsTableExists() {
     try {
         await pool.query(`
       CREATE TABLE IF NOT EXISTS channels (
@@ -58,7 +26,7 @@ async function ensureChannelsDirectoryExists() {
     }
 }
 
-async function createNewFile(channelName) {
+async function addNewChannel(channelName) {
     try {
         const res = await pool.query(
             "SELECT * FROM channels WHERE channel_name = $1",
@@ -101,12 +69,12 @@ async function deleteChannel(channelName) {
     }
 }
 
-async function updateFile(channelName, newUsername, newCommands, newModifier) {
+async function updateDatabase(channelName, newUsername, newCommands, newModifier) {
     try {
-        // Format the commands array correctly for PostgreSQL
+
         const formattedCommands = Array.isArray(newCommands)
             ? `{${newCommands.map(cmd => `"${cmd[0]}","${cmd[1]}"`).join(",")}}`
-            : '{}'; // Empty array if newCommands is not an array
+            : '{}';
 
         await pool.query(
             "UPDATE channels SET username = $1, commands = $2, modifier = $3 WHERE channel_name = $4",
@@ -125,7 +93,7 @@ async function updateFile(channelName, newUsername, newCommands, newModifier) {
 }
 
 
-async function loadFilesAndContents() {
+async function loadChannelsFromDatabase() {
     try {
         const res = await pool.query("SELECT * FROM channels");
 
@@ -141,8 +109,8 @@ async function loadFilesAndContents() {
 }
 
 async function initialize() {
-    await ensureChannelsDirectoryExists();
-    await loadFilesAndContents();
+    await ensureChannelsTableExists();
+    await loadChannelsFromDatabase();
 }
 
 initialize();
@@ -188,7 +156,7 @@ client.on("message", async (channel, userstate, message, self) => {
             args.push(username);
         }
         if (username === args[1] || username === "arsoniv") {
-            createNewFile(args[1]);
+            addNewChannel(args[1]);
             client.say(channel, `${args[1]} added to channel list :)`);
         }
     }
@@ -218,7 +186,7 @@ client.on("message", async (channel, userstate, message, self) => {
         if (username === normalizedChannel || username === "arsoniv") {
             if (args.length === 2) {
                 const newUsername = args[1];
-                updateFile(normalizedChannel, newUsername, fileContents[normalizedChannel][1], modText);
+                updateDatabase(normalizedChannel, newUsername, fileContents[normalizedChannel][1], modText);
                 client.say(channel, `Username updated to ${newUsername}`);
             } else {
                 client.say(channel, "Provide your minecraft username.");
@@ -239,7 +207,7 @@ client.on("message", async (channel, userstate, message, self) => {
                 let newCommands = fileContents[normalizedChannel][1];
                 newCommands.push([trigger, result]);
 
-                updateFile(normalizedChannel, fileContents[normalizedChannel][0], newCommands, modText);
+                updateDatabase(normalizedChannel, fileContents[normalizedChannel][0], newCommands, modText);
                 client.say(channel, `Added new command: ${trigger}`);
             } else {
                 client.say(channel, "Provide a trigger and result.");
@@ -284,7 +252,7 @@ client.on("message", async (channel, userstate, message, self) => {
                 const newCommands = oldCommands.filter(subArray => subArray[0] !== trigger);
 
                 // Update the file with the modified commands array
-                updateFile(normalizedChannel, fileContents[normalizedChannel][0], newCommands, modText);
+                updateDatabase(normalizedChannel, fileContents[normalizedChannel][0], newCommands, modText);
 
                 client.say(channel, `Removed command: ${trigger}`);
             } else {
@@ -301,7 +269,7 @@ client.on("message", async (channel, userstate, message, self) => {
         const args = message.split(" ");
         if (username === normalizedChannel || username === "arsoniv") {
             const newModText = args[1];
-            updateFile(normalizedChannel, "", fileContents[normalizedChannel][1], newModText);
+            updateDatabase(normalizedChannel, "", fileContents[normalizedChannel][1], newModText);
             client.say(channel, `ModText updated to ${newModText}`);
         } else {
             client.say(
@@ -329,7 +297,7 @@ client.on("message", async (channel, userstate, message, self) => {
             args.push(fileContents[normalizedChannel][0]);
         }
 
-        (async () => {
+        await (async () => {
             const response2 = await fetch(
                 "https://paceman.gg/stats/api/getRecentRuns?name=" +
                 args[1] +
@@ -397,7 +365,7 @@ client.on("message", async (channel, userstate, message, self) => {
             return `${minutes}:${seconds}`;
         };
 
-        (async () => {
+        await (async () => {
             const username = args[1];
             const split = args.length > 2 ? args[2].toLowerCase() : null;
             const cutoff = args.length > 3 ? parseCutoff(args[3]) * 1000 : null;
@@ -468,7 +436,7 @@ client.on("message", async (channel, userstate, message, self) => {
         }
 
 
-        (async () => {
+        await (async () => {
             const response2 = await fetch(
                 "https://paceman.gg/stats/api/getSessionStats/?name=" +
                 args[1] +
@@ -503,7 +471,7 @@ client.on("message", async (channel, userstate, message, self) => {
     }
 
     if (message.toLowerCase().startsWith(modText + "bible")) {
-        (async () => {
+        await (async () => {
             try {
                 const response = await fetch("https://bible-api.com/?random=verse");
                 const data = await response.json();
@@ -520,7 +488,7 @@ client.on("message", async (channel, userstate, message, self) => {
         })();
     }
     if (message.toLowerCase().startsWith(modText + "joke")) {
-        (async () => {
+        await (async () => {
             try {
                 const response = await fetch("https://v2.jokeapi.dev/joke/Any");
                 const data = await response.json();
@@ -538,7 +506,7 @@ client.on("message", async (channel, userstate, message, self) => {
     }
 
     if (message.toLowerCase().startsWith(modText + "fact")) {
-        (async () => {
+        await (async () => {
             try {
                 const response = await fetch(
                     "https://uselessfacts.jsph.pl/random.json?language=en"
@@ -562,7 +530,7 @@ client.on("message", async (channel, userstate, message, self) => {
     }
 
     if (message.toLowerCase().startsWith(modText + "catfact")) {
-        (async () => {
+        await (async () => {
             try {
                 const response = await fetch("https://catfact.ninja/fact");
                 const data = await response.json();
@@ -583,7 +551,7 @@ client.on("message", async (channel, userstate, message, self) => {
             args.push(fileContents[normalizedChannel][0]);
         }
 
-        (async () => {
+        await (async () => {
             const response2 = await fetch(
                 "https://paceman.gg/stats/api/getSessionStats/?name=" +
                 args[1] +
@@ -626,7 +594,7 @@ client.on("message", async (channel, userstate, message, self) => {
             args.push(fileContents[normalizedChannel][0]);
         }
 
-        (async () => {
+        await (async () => {
             try {
                 const response = await fetch(
                     "https://mcsrranked.com/api/users/" + args[1]
@@ -661,7 +629,3 @@ client.on("connected", (addr, port) => {
 });
 
 client.connect();
-
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});

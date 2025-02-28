@@ -114,10 +114,6 @@ async function initialize() {
     await loadChannelsFromDatabase();
 }
 
-initialize();
-
-console.log(fileNames);
-console.log(fileContents);
 
 const opts = {
     identity: {
@@ -631,4 +627,9 @@ client.on("connected", (addr, port) => {
     console.log(`Connected to ${addr}:${port}`);
 });
 
-client.connect();
+initialize().then(() => {
+    console.log(fileNames);
+    console.log(fileContents);
+
+    client.connect();
+});

@@ -120,8 +120,8 @@ initialize().then(() => {
 
     const opts = {
         identity: {
-            username: "ActiniumBot",
-            password: "oauth:70402aw9cpohlq5sau23rolbdobz8j",
+            username: "bestmcsrbotyayfun",
+            password: "oauth:cnof6avat41865lvnuepijqm8lpk3o",
         },
         channels: fileNames,
     };

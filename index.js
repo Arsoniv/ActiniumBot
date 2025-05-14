@@ -121,7 +121,7 @@ initialize().then(() => {
     const opts = {
         identity: {
             username: "bestmcsrbotyayfun",
-            password: "oauth:cnof6avat41865lvnuepijqm8lpk3o",
+            password: "oauth:bq34808z5jwqjbe3680yuvthxlwwc0",
         },
         channels: fileNames,
     };

@@ -1,6 +1,42 @@
 const tmi = require("tmi.js");
 const fetch = require("cross-fetch");
 
+// server.js
+const http = require('http');
+const url = require('url');
+const { parse } = require('querystring'); // To parse POST data
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+
+  // Handle POST request
+  if (req.method === 'POST' && parsedUrl.pathname === '/post-endpoint') {
+    let body = '';
+
+    // Collect the data
+    req.on('data', chunk => {
+      body += chunk;
+    });
+
+    // Once all data is received, parse it and send a response
+    req.on('end', () => {
+      const parsedBody = parse(body);
+      console.log(parsedBody);  // You can log or process the POST data here
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'POST request received', data: parsedBody }));
+    });
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+server.listen(3000, () => {
+  console.log('Server is running on http://localhost:3000');
+});
+
+
 const {Pool} = require("pg");
 
 const pool = new Pool({

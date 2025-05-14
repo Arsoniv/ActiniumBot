@@ -177,7 +177,7 @@ initialize().then(() => {
             (message.toLowerCase().includes(" bot") ||
                 message.toLowerCase().includes(" actinium"))
         ) {
-            const random = Math.random();'
+            const random = Math.random();
               console.log("hi message recieved");
             if (random < 0.1) {
                 client.say(
